@@ -5,6 +5,7 @@ require('dotenv').config();
 
 // Import routes
 const authRoutes = require('./routes/authRoutes');
+const codeRoutes = require('../server/routes/codeRoutes');
 
 // Initialize Express app
 const app = express();
@@ -19,6 +20,7 @@ connectDB();
 
 // Routes
 app.use('/api', authRoutes);
+app.use("/api/code", codeRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
