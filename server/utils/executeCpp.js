@@ -1,9 +1,8 @@
 const { exec } = require("child_process");
 const fs = require("fs");
 const path = require("path");
-const os = require("os");
 
-const outputPath = path.join(__dirname, "outputs");
+const outputPath = path.join(__dirname, "..", "outputs");
 
 if (!fs.existsSync(outputPath)) {
   fs.mkdirSync(outputPath, { recursive: true });
@@ -15,22 +14,24 @@ if (!fs.existsSync(outputPath)) {
  */
 const executeCpp = (filepath) => {
   const jobId = path.basename(filepath).split(".")[0];
-  const outFile = os.platform() === "win32"
+  const outFile = process.platform === "win32"
     ? `${jobId}.exe`
     : `${jobId}.out`;
   const outPath = path.join(outputPath, outFile);
 
-  const command = os.platform() === "win32"
-    ? `g++ ${filepath} -o ${outPath} && ${outPath}`
-    : `g++ ${filepath} -o ${outPath} && ${outPath}`;
+  const command = process.platform === "win32"
+    ? `g++ "${filepath}" -o "${outPath}" && "${outPath}"`
+    : `g++ "${filepath}" -o "${outPath}" && "${outPath}"`;
 
   return new Promise((resolve, reject) => {
-    exec(command, (error, stdout, stderr) => {
+    exec(command, { timeout: 10000 }, (error, stdout, stderr) => {
       if (error) {
-        return reject({ error, stderr });
+        reject({ error, stderr });
+        return;
       }
       if (stderr) {
-        return reject(stderr);
+        reject({ stderr });
+        return;
       }
       resolve(stdout);
     });
