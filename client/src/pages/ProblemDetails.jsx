@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from "react-router-dom";
+import { useSelector, useDispatch } from 'react-redux';
+import { getCurrentUser } from '../redux/slices/userSlice';
 import { auth } from "../auth/auth.js";
 import { problems } from '../data/problems';
 import TwoSum from "../components/problems/TwoSum";
@@ -8,10 +10,22 @@ import AddTwoNumbers from "../components/problems/AddTwoNumbers";
 function ProblemDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  
+  // Get user data from Redux store
+  const { user, isAuthenticated, loading: userLoading } = useSelector(state => state.user);
+  
   const [problem, setProblem] = useState(null);
   const [code, setCode] = useState("");
   const [output, setOutput] = useState("");
   const [loading, setLoading] = useState(false);
+  
+  // Fetch user data if authenticated but no user data
+  useEffect(() => {
+    if (isAuthenticated && !user) {
+      dispatch(getCurrentUser());
+    }
+  }, [isAuthenticated, user, dispatch]);
   
   useEffect(() => {
     const currentProblem = problems.find(p => p.id === id);
@@ -126,7 +140,6 @@ int main() {
   }, [id, navigate]);
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
     auth.logout(() => navigate("/login"));
   };
 
@@ -135,12 +148,13 @@ int main() {
       setLoading(true);
       setOutput("Running code...");
       
-      // Make sure to include the correct base URL
+      const token = auth.getToken();
+      
       const response = await fetch('http://localhost:5000/api/code/run', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           code,
@@ -168,15 +182,16 @@ int main() {
       setLoading(true);
       setOutput("Submitting solution...");
       
-      console.log("Submitting solution for problem:", id);
-      console.log("Code:", code);
+      const token = auth.getToken();
       
-      // Make sure to include the correct base URL
+      console.log("Submitting solution for problem:", id);
+      console.log("User:", user);
+      
       const response = await fetch('http://localhost:5000/api/code/submit', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           problemId: id,
@@ -219,12 +234,19 @@ int main() {
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">{problem.title}</h1>
-        <button
-          onClick={handleLogout}
-          className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-        >
-          Logout
-        </button>
+        <div className="flex items-center space-x-4">
+          {user && (
+            <span className="text-gray-700">
+              Welcome, {user.username || user.name || 'User'}
+            </span>
+          )}
+          <button
+            onClick={handleLogout}
+            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+          >
+            Logout
+          </button>
+        </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div>
