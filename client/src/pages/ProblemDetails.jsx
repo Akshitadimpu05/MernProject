@@ -31,7 +31,7 @@ function ProblemDetails() {
     const currentProblem = problems.find(p => p.id === id);
     if (currentProblem) {
       setProblem(currentProblem);
-      // Set initial code template based on problem
+      // Set initial code template based on problem - WITHOUT solutions
       const initialCode = {
         '1': `// Two Sum
 #include <iostream>
@@ -43,15 +43,7 @@ class Solution {
 public:
     vector<int> twoSum(vector<int>& nums, int target) {
         // Write your code here
-        unordered_map<int, int> map;
-        for (int i = 0; i < nums.size(); i++) {
-            int complement = target - nums[i];
-            if (map.find(complement) != map.end()) {
-                return {map[complement], i};
-            }
-            map[nums[i]] = i;
-        }
-        return {}; // No solution found
+        return vector<int>(); // Return empty vector for now
     }
 };
 
@@ -79,28 +71,7 @@ class Solution {
 public:
     ListNode* addTwoNumbers(ListNode* l1, ListNode* l2) {
         // Write your code here
-        ListNode* dummyHead = new ListNode(0);
-        ListNode* curr = dummyHead;
-        int carry = 0;
-        
-        while (l1 != NULL || l2 != NULL) {
-            int x = (l1 != NULL) ? l1->val : 0;
-            int y = (l2 != NULL) ? l2->val : 0;
-            int sum = carry + x + y;
-            carry = sum / 10;
-            
-            curr->next = new ListNode(sum % 10);
-            curr = curr->next;
-            
-            if (l1 != NULL) l1 = l1->next;
-            if (l2 != NULL) l2 = l2->next;
-        }
-        
-        if (carry > 0) {
-            curr->next = new ListNode(carry);
-        }
-        
-        return dummyHead->next;
+        return NULL; // Return NULL for now
     }
 };
 
@@ -139,6 +110,7 @@ int main() {
     }
   }, [id, navigate]);
 
+  // Rest of the component stays the same...
   const handleLogout = () => {
     auth.logout(() => navigate("/login"));
   };
@@ -234,19 +206,6 @@ int main() {
     <div className="container mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">{problem.title}</h1>
-        <div className="flex items-center space-x-4">
-          {user && (
-            <span className="text-gray-700">
-              Welcome, {user.username || user.name || 'User'}
-            </span>
-          )}
-          <button
-            onClick={handleLogout}
-            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-          >
-            Logout
-          </button>
-        </div>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         <div>

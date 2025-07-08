@@ -11,7 +11,7 @@ const authRoutes = require('./routes/authRoutes');
 const codeRoutes = require('./routes/codeRoutes');
 
 // MongoDB connection - using your existing .env config
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/algo-web-app';
+const MONGODB_URI = process.env.MONGO_URI;
 mongoose.connect(MONGODB_URI)
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.error('MongoDB connection error:', err));
