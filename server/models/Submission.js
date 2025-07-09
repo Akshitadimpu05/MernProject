@@ -1,16 +1,9 @@
 const mongoose = require('mongoose');
 
-const testCaseSchema = new mongoose.Schema({
-  id: String,
-  input: String,
-  expected: String,
-  output: String,
-  passed: Boolean
-});
-
-const submissionSchema = new mongoose.Schema({
+const SubmissionSchema = new mongoose.Schema({
   userId: {
-    type: String,  // Changed from ObjectId to String
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
     required: true
   },
   problemId: {
@@ -23,19 +16,42 @@ const submissionSchema = new mongoose.Schema({
   },
   language: {
     type: String,
-    required: true
+    enum: ['cpp', 'java', 'python'],
+    default: 'cpp'
   },
   status: {
     type: String,
-    enum: ['pending', 'accepted', 'wrong_answer', 'runtime_error', 'compilation_error'],
+    enum: ['pending', 'accepted', 'wrong_answer', 'error'],
     default: 'pending'
   },
-  testCases: [testCaseSchema],
-  output: String,
+  output: {
+    type: String,
+    default: ''
+  },
+  testCases: [{
+    id: String,
+    input: String,
+    expected: String,
+    output: String,
+    passed: Boolean
+  }],
+  executionTime: {
+    type: Number,
+    default: 0
+  },
+  memoryUsed: {
+    type: Number,
+    default: 0
+  },
   createdAt: {
     type: Date,
     default: Date.now
   }
 });
 
-module.exports = mongoose.model('Submission', submissionSchema);
+// Add indexes for better query performance
+SubmissionSchema.index({ userId: 1, problemId: 1 });
+SubmissionSchema.index({ status: 1 });
+SubmissionSchema.index({ createdAt: -1 });
+
+module.exports = mongoose.model('Submission', SubmissionSchema);

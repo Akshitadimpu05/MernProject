@@ -6,18 +6,25 @@ const { exec } = require('child_process');
 const Submission = require('../models/Submission');
 const mongoose = require('mongoose');
 const { ObjectId } = mongoose.Types;
+const { executeJava, cleanupJava } = require('../utils/executeJava.js');
+const { runCode } = require('../controllers/customController.js');
 
-// Helper function to generate file
 function generateFile(language, code) {
   const tempDir = path.join(__dirname, '..', 'temp');
   if (!fs.existsSync(tempDir)) {
     fs.mkdirSync(tempDir, { recursive: true });
   }
 
-  const fileName = `code_${Date.now()}.${language === 'cpp' ? 'cpp' : language}`;
+  let extension = 'cpp';
+  if (language === 'java') extension = 'java';
+  if (language === 'python') extension = 'py';
+
+  // Use consistent Java filename
+  const fileName = language === 'java' ? 'Solution.java' : `code_${Date.now()}.${extension}`;
   const filePath = path.join(tempDir, fileName);
 
   fs.writeFileSync(filePath, code);
+  console.log(`Generated ${language} file: ${filePath}`);
   return filePath;
 }
 
@@ -30,9 +37,7 @@ async function executeCpp(filePath) {
     fs.mkdirSync(outputPath, { recursive: true });
   }
   
-  const outFile = process.platform === "win32"
-    ? `${jobId}.exe`
-    : `${jobId}.out`;
+  const outFile = process.platform === "win32" ? `${jobId}.exe` : `${jobId}.out`;
   const outPath = path.join(outputPath, outFile);
   
   return new Promise((resolve, reject) => {
@@ -61,20 +66,47 @@ async function executeCpp(filePath) {
   });
 }
 
+
+
+// Helper function to execute Python code
+async function executePython(filePath) {
+  return new Promise((resolve, reject) => {
+    const command = `python3 "${filePath}"`;
+    console.log(`Executing Python: ${command}`);
+    
+    exec(command, { timeout: 10000 }, (error, stdout, stderr) => {
+      if (error) {
+        console.error('Python execution error:', error);
+        reject({ error, stderr });
+        return;
+      }
+      
+      console.log('Python stdout:', stdout);
+      resolve(stdout);
+    });
+  });
+}
+
 // Helper function to clean up temporary files
-function cleanupFiles(filePath) {
+function cleanupFiles(filePath, language) {
   try {
+    // Remove source file
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);
     }
     
-    const outFile = process.platform === "win32"
-      ? `${path.basename(filePath).split(".")[0]}.exe`
-      : `${path.basename(filePath).split(".")[0]}.out`;
-    const outPath = path.join(__dirname, '..', 'outputs', outFile);
+    const jobId = path.basename(filePath).split(".")[0];
     
-    if (fs.existsSync(outPath)) {
-      fs.unlinkSync(outPath);
+    if (language === 'cpp') {
+      // Remove output file
+      const outFile = process.platform === "win32" ? `${jobId}.exe` : `${jobId}.out`;
+      const outPath = path.join(__dirname, '..', 'outputs', outFile);
+      
+      if (fs.existsSync(outPath)) {
+        fs.unlinkSync(outPath);
+      }
+    } else if (language === 'java') {
+      cleanupJava(filePath);
     }
   } catch (error) {
     console.error('Error cleaning up files:', error);
@@ -85,8 +117,6 @@ function cleanupFiles(filePath) {
 function getTestCases(problemId) {
   console.log(`Getting test cases for problem ${problemId}`);
   
-  // In a real application, you would fetch these from a database
-  // For now, we'll hardcode sample test cases for each problem
   const testCasesMap = {
     '1': [ // Two Sum
       {
@@ -124,33 +154,51 @@ function getTestCases(problemId) {
     ]
   };
   
-  const testCases = testCasesMap[problemId] || [];
-  console.log(`Found ${testCases.length} test cases`);
-  return testCases;
+  return testCasesMap[problemId] || [];
 }
 
 // Function to modify code for test input
-function getTestCode(code, input, problemId) {
-  console.log(`Generating test code for problem ${problemId} with input ${input}`);
-  
+function getTestCode(code, input, problemId, language) {
   try {
-    if (problemId === '1') {
-      // Two Sum problem - expects array and target
-      // Parse the input string - format: {array}, target
-      const inputParts = input.split('},');
-      if (inputParts.length !== 2) {
-        throw new Error('Invalid input format');
-      }
-      
-      let numsStr = inputParts[0].trim();
-      if (numsStr.startsWith('{')) {
-        numsStr = numsStr.substring(1);
-      }
-      
-      const targetStr = inputParts[1].trim();
-      
-      // Create a modified main function that uses the test case input
-      const newMain = `
+    if (language === 'cpp') {
+      return getCppTestCode(code, input, problemId);
+    } else if (language === 'java') {
+      return getJavaTestCode(code, input, problemId);
+    } else if (language === 'python') {
+      return getPythonTestCode(code, input, problemId);
+    }
+    
+    // Default to C++
+    return getCppTestCode(code, input, problemId);
+  } catch (error) {
+    console.error(`Error generating test code: ${error.message}`);
+    return code;
+  }
+}
+
+// For Two Sum problem in C++
+function getCppTwoSumTestCode(code, input) {
+  try {
+    console.log(`Generating C++ Two Sum test code for input: ${input}`);
+    
+    // Extract array and target
+    let parts = input.split('},');
+    if (parts.length !== 2) {
+      parts = input.split(',');
+      parts = [parts.slice(0, -1).join(','), parts[parts.length - 1]];
+    }
+    
+    let numsStr = parts[0].trim();
+    let targetStr = parts[1].trim();
+    
+    // Remove braces
+    if (numsStr.startsWith('{')) numsStr = numsStr.substring(1);
+    if (numsStr.endsWith('}')) numsStr = numsStr.substring(0, numsStr.length - 1);
+    
+    console.log(`Parsed: nums=[${numsStr}], target=${targetStr}`);
+    
+    // Create main function
+    const mainFunction = `
 int main() {
     Solution sol;
     vector<int> nums = {${numsStr}};
@@ -161,67 +209,81 @@ int main() {
     }
     return 0;
 }`;
-      
-      // Replace the original main function
-      const mainRegex = /int\s+main\s*\(\s*\)\s*{[\s\S]*?return\s+0\s*;\s*}/g;
-      const modifiedCode = code.replace(mainRegex, newMain);
-      
-      console.log("Generated test code for Two Sum problem");
-      return modifiedCode;
-    } else if (problemId === '2') {
-      // Add Two Numbers problem - more complex, needs ListNode construction
-      const listRegex = /\[([\d,\s]+)\]/g;
-      const matches = [...input.matchAll(listRegex)];
-      
-      if (matches.length !== 2) {
-        throw new Error('Invalid input format for Add Two Numbers');
+
+    // Replace main function in code, or append if it doesn't exist
+    const mainRegex = /int\s+main\s*\(\s*\)\s*{[\s\S]*?return\s+0\s*;?\s*}/g;
+    if (mainRegex.test(code)) {
+      return code.replace(mainRegex, mainFunction);
+    }
+    return code + '\n' + mainFunction;
+  } catch (error) {
+    console.error(`Error in C++ Two Sum test code: ${error.message}`);
+    return code;
+  }
+}
+
+// For Add Two Numbers problem in C++
+function getCppAddTwoNumbersTestCode(code, input) {
+  try {
+    console.log(`Generating C++ Add Two Numbers test code for input: ${input}`);
+    
+    // Match array patterns like [2, 4, 3]
+    const lists = input.match(/\[(.*?)\]/g).map(list => 
+      list.slice(1, -1).split(',').map(n => n.trim())
+    );
+    
+    if (lists.length !== 2) {
+      throw new Error('Invalid Add Two Numbers input format');
+    }
+    
+    const l1 = lists[0];
+    const l2 = lists[1];
+    
+    console.log(`Parsed: l1=[${l1}], l2=[${l2}]`);
+    
+    // Generate ListNode creation code
+    let listCode = '';
+    
+    // First list
+    listCode += 'ListNode* l1 = nullptr;\n';
+    listCode += 'ListNode* curr1 = nullptr;\n';
+    
+    l1.forEach((val, idx) => {
+      if (idx === 0) {
+        listCode += `l1 = new ListNode(${val});\n`;
+        listCode += `curr1 = l1;\n`;
+      } else {
+        listCode += `curr1->next = new ListNode(${val});\n`;
+        listCode += `curr1 = curr1->next;\n`;
       }
-      
-      const list1Values = matches[0][1].split(',').map(n => n.trim());
-      const list2Values = matches[1][1].split(',').map(n => n.trim());
-      
-      // Generate code to create the linked lists
-      let listNodesCode = '';
-      
-      // First list creation
-      listNodesCode += 'ListNode* l1 = nullptr;\n';
-      listNodesCode += 'ListNode* curr1 = nullptr;\n';
-      
-      list1Values.forEach((val, idx) => {
-        if (idx === 0) {
-          listNodesCode += `l1 = new ListNode(${val});\n`;
-          listNodesCode += `curr1 = l1;\n`;
-        } else {
-          listNodesCode += `curr1->next = new ListNode(${val});\n`;
-          listNodesCode += `curr1 = curr1->next;\n`;
-        }
-      });
-      
-      // Second list creation
-      listNodesCode += 'ListNode* l2 = nullptr;\n';
-      listNodesCode += 'ListNode* curr2 = nullptr;\n';
-      
-      list2Values.forEach((val, idx) => {
-        if (idx === 0) {
-          listNodesCode += `l2 = new ListNode(${val});\n`;
-          listNodesCode += `curr2 = l2;\n`;
-        } else {
-          listNodesCode += `curr2->next = new ListNode(${val});\n`;
-          listNodesCode += `curr2 = curr2->next;\n`;
-        }
-      });
-      
-      const newMain = `
+    });
+    
+    // Second list
+    listCode += 'ListNode* l2 = nullptr;\n';
+    listCode += 'ListNode* curr2 = nullptr;\n';
+    
+    l2.forEach((val, idx) => {
+      if (idx === 0) {
+        listCode += `l2 = new ListNode(${val});\n`;
+        listCode += `curr2 = l2;\n`;
+      } else {
+        listCode += `curr2->next = new ListNode(${val});\n`;
+        listCode += `curr2 = curr2->next;\n`;
+      }
+    });
+    
+    // Create main function
+    const mainFunction = `
 int main() {
     Solution sol;
     
-    // Create lists from test input
-    ${listNodesCode}
+    // Create lists
+    ${listCode}
     
-    // Call the solution function
+    // Get result
     ListNode* result = sol.addTwoNumbers(l1, l2);
     
-    // Output the result
+    // Print result
     while (result) {
         cout << result->val << " ";
         result = result->next;
@@ -229,22 +291,267 @@ int main() {
     
     return 0;
 }`;
-      
-      // Replace the original main function
-      const mainRegex = /int\s+main\s*\(\s*\)\s*{[\s\S]*?return\s+0\s*;\s*}/g;
-      const modifiedCode = code.replace(mainRegex, newMain);
-      
-      console.log("Generated test code for Add Two Numbers problem");
-      return modifiedCode;
+
+    // Replace main function in code, or append if it doesn't exist
+    const mainRegex = /int\s+main\s*\(\s*\)\s*{[\s\S]*?return\s+0\s*;?\s*}/g;
+    if (mainRegex.test(code)) {
+      return code.replace(mainRegex, mainFunction);
+    }
+    return code + '\n' + mainFunction;
+  } catch (error) {
+    console.error(`Error in C++ Add Two Numbers test code: ${error.message}`);
+    return code;
+  }
+}
+
+// Function to modify C++ code for test input
+function getCppTestCode(code, input, problemId) {
+  if (problemId === '1') {
+    return getCppTwoSumTestCode(code, input);
+  } else if (problemId === '2') {
+    return getCppAddTwoNumbersTestCode(code, input);
+  }
+  
+  return code;
+}
+
+// For Java Two Sum test code
+function getJavaTwoSumTestCode(code, input) {
+  try {
+    console.log(`Generating Java Two Sum test code for input: ${input}`);
+
+    // ✅ Skip if main already exists
+    if (/public\s+static\s+void\s+main\s*\(/.test(code)) {
+      console.log('Java main method already exists. Skipping injection.');
+      return code;
+    }
+
+    // Parse input
+    let parts = input.split('},');
+    if (parts.length !== 2) {
+      parts = input.split(',');
+      parts = [parts.slice(0, -1).join(','), parts[parts.length - 1]];
+    }
+
+    let numsStr = parts[0].trim();
+    let targetStr = parts[1].trim();
+
+    if (numsStr.startsWith('{')) numsStr = numsStr.slice(1);
+    if (numsStr.endsWith('}')) numsStr = numsStr.slice(0, -1);
+
+    const mainMethod = `
+    public static void main(String[] args) {
+        Solution sol = new Solution();
+        int[] nums = {${numsStr}};
+        int target = ${targetStr};
+        int[] result = sol.twoSum(nums, target);
+        for (int num : result) {
+            System.out.print(num + " ");
+        }
+    }`;
+
+    // Inject before class closing brace
+    const lastBrace = code.lastIndexOf('}');
+    if (lastBrace !== -1) {
+      return code.slice(0, lastBrace) + mainMethod + '\n}';
+    }
+
+    return code + '\n' + mainMethod;
+  } catch (error) {
+    console.error(`Error in Java Two Sum test code: ${error.message}`);
+    return code;
+  }
+}
+
+// For Java Add Two Numbers test code
+function getJavaAddTwoNumbersTestCode(code, input) {
+  try {
+    console.log(`Generating Java Add Two Numbers test code for input: ${input}`);
+
+    // ✅ Skip if main already exists
+    if (/public\s+static\s+void\s+main\s*\(/.test(code)) {
+      console.log('Java main method already exists. Skipping injection.');
+      return code;
+    }
+
+    const lists = input.match(/\[(.*?)\]/g).map(list =>
+      list.slice(1, -1).split(',').map(n => n.trim())
+    );
+
+    if (lists.length !== 2) {
+      throw new Error('Invalid input format for Add Two Numbers');
+    }
+
+    const l1 = lists[0];
+    const l2 = lists[1];
+
+    const mainMethod = `
+    public static void main(String[] args) {
+        Solution sol = new Solution();
+
+        ListNode l1 = null;
+        ListNode curr1 = null;
+        ${l1.map((val, idx) =>
+          idx === 0
+            ? `l1 = new ListNode(${val}); curr1 = l1;`
+            : `curr1.next = new ListNode(${val}); curr1 = curr1.next;`
+        ).join('\n        ')}
+
+        ListNode l2 = null;
+        ListNode curr2 = null;
+        ${l2.map((val, idx) =>
+          idx === 0
+            ? `l2 = new ListNode(${val}); curr2 = l2;`
+            : `curr2.next = new ListNode(${val}); curr2 = curr2.next;`
+        ).join('\n        ')}
+
+        ListNode result = sol.addTwoNumbers(l1, l2);
+        while (result != null) {
+            System.out.print(result.val + " ");
+            result = result.next;
+        }
+    }`;
+
+    const lastBrace = code.lastIndexOf('}');
+    if (lastBrace !== -1) {
+      return code.slice(0, lastBrace) + mainMethod + '\n}';
+    }
+
+    return code + '\n' + mainMethod;
+  } catch (error) {
+    console.error(`Error in Java Add Two Numbers test code: ${error.message}`);
+    return code;
+  }
+}
+
+// Function to modify Java code for test input
+function getJavaTestCode(code, input, problemId) {
+  if (problemId === '1') {
+    return getJavaTwoSumTestCode(code, input);
+  } else if (problemId === '2') {
+    return getJavaAddTwoNumbersTestCode(code, input);
+  }
+  
+  return code;
+}
+
+// For Python Two Sum test code
+
+
+function getPythonTwoSumTestCode(code, input) {
+  try {
+    console.log(`Generating Python Two Sum test code for input: ${input}`);
+    
+    // Extract array and target
+    let parts = input.split('},');
+    if (parts.length !== 2) {
+      parts = input.split(',');
+      parts = [parts.slice(0, -1).join(','), parts[parts.length - 1]];
     }
     
-    // Default case - return original code
-    console.log("No specific test code generator for this problem, using original code");
-    return code;
+    let numsStr = parts[0].trim();
+    let targetStr = parts[1].trim();
+    
+    // Remove braces
+    if (numsStr.startsWith('{')) numsStr = numsStr.substring(1);
+    if (numsStr.endsWith('}')) numsStr = numsStr.substring(0, numsStr.length - 1);
+    
+    console.log(`Parsed: nums=[${numsStr}], target=${targetStr}`);
+    
+    // Create main block
+    const mainBlock = `
+if __name__ == "__main__":
+    sol = Solution()
+    nums = [${numsStr}]
+    target = ${targetStr}
+    result = sol.twoSum(nums, target)
+    print(' '.join(map(str, result)))`;
+    
+    // Replace main block in code or add it
+    if (code.includes('if __name__ == "__main__"')) {
+      return code.replace(/if\s+__name__\s*==\s*"__main__"[\s\S]*?(?=\n\S|$)/, mainBlock);
+    } else {
+      return code + '\n' + mainBlock;
+    }
   } catch (error) {
-    console.error('Error generating test code:', error);
-    return code; // Return original code if there's an error
+    console.error(`Error in Python Two Sum test code: ${error.message}`);
+    return code;
   }
+}
+
+// For Python Add Two Numbers test code
+function getPythonAddTwoNumbersTestCode(code, input) {
+  try {
+    console.log(`Generating Python Add Two Numbers test code for input: ${input}`);
+    
+    // Match array patterns like [2, 4, 3]
+    const lists = input.match(/\[(.*?)\]/g).map(list => 
+      list.slice(1, -1).split(',').map(n => n.trim())
+    );
+    
+    if (lists.length !== 2) {
+      throw new Error('Invalid Add Two Numbers input format');
+    }
+    
+    const l1 = lists[0];
+    const l2 = lists[1];
+    
+    console.log(`Parsed: l1=[${l1}], l2=[${l2}]`);
+    
+    // Create main block
+    const mainBlock = `
+if __name__ == "__main__":
+    sol = Solution()
+    
+    # Create first list
+    l1 = None
+    curr = None
+    ${l1.map((val, idx) => 
+      idx === 0 
+        ? `l1 = ListNode(${val}); curr = l1` 
+        : `curr.next = ListNode(${val}); curr = curr.next`
+    ).join('\n    ')}
+    
+    # Create second list
+    l2 = None
+    curr = None
+    ${l2.map((val, idx) => 
+      idx === 0 
+        ? `l2 = ListNode(${val}); curr = l2` 
+        : `curr.next = ListNode(${val}); curr = curr.next`
+    ).join('\n    ')}
+    
+    # Get result
+    result = sol.addTwoNumbers(l1, l2)
+    
+    # Print result
+    output = []
+    while result:
+        output.append(str(result.val))
+        result = result.next
+    print(' '.join(output))`;
+    
+    // Replace main block in code or add it
+    if (code.includes('if __name__ == "__main__"')) {
+      return code.replace(/if\s+__name__\s*==\s*"__main__"[\s\S]*?(?=\n\S|$)/, mainBlock);
+    } else {
+      return code + '\n' + mainBlock;
+    }
+  } catch (error) {
+    console.error(`Error in Python Add Two Numbers test code: ${error.message}`);
+    return code;
+  }
+}
+
+// Function to modify Python code for test input
+function getPythonTestCode(code, input, problemId) {
+  if (problemId === '1') {
+    return getPythonTwoSumTestCode(code, input);
+  } else if (problemId === '2') {
+    return getPythonAddTwoNumbersTestCode(code, input);
+  }
+  
+  return code;
 }
 
 // Run code endpoint
@@ -252,25 +559,39 @@ router.post('/run', async (req, res) => {
   console.log('Run code endpoint called');
   
   try {
-    const { code, language = 'cpp' } = req.body;
-    
-    if (!code) {
-      console.log('No code provided');
-      return res.status(400).json({ error: "Code is required" });
+    const { problemId, code, language = 'cpp' } = req.body;
+
+    if (!problemId || !code) {
+      return res.status(400).json({ error: 'Problem ID and code are required' });
     }
-    
-    console.log('Generating file for code execution');
-    const filePath = generateFile(language, code);
-    
+
+    const testCases = getTestCases(problemId);
+    if (!testCases || testCases.length === 0) {
+      return res.status(400).json({ error: 'No test cases found for this problem' });
+    }
+
+    // Use the first test case for the 'run' functionality
+    const firstTestCase = testCases[0];
+    const testCode = getTestCode(code, firstTestCase.input, problemId, language);
+
+    const filePath = generateFile(language, testCode);
+
     try {
-      console.log('Executing code');
-      const output = await executeCpp(filePath);
-      console.log('Code executed successfully');
-      cleanupFiles(filePath);
+      let output;
+      if (language === 'cpp') {
+        output = await executeCpp(filePath);
+      } else if (language === 'java') {
+        output = await executeJava(filePath);
+      } else if (language === 'python') {
+        output = await executePython(filePath);
+      } else {
+        output = await executeCpp(filePath);
+      }
+      
+      cleanupFiles(filePath, language);
       res.json({ output });
     } catch (err) {
-      console.error('Error during code execution:', err);
-      cleanupFiles(filePath);
+      cleanupFiles(filePath, language);
       res.status(500).json({ 
         error: err.stderr || "Execution error",
         details: err.toString()
@@ -282,34 +603,7 @@ router.post('/run', async (req, res) => {
   }
 });
 
-// Execute code with test cases endpoint
-router.post('/execute', async (req, res) => {
-  console.log('Execute code endpoint called');
-  
-  try {
-    const { problemId, code, language = 'cpp' } = req.body;
-    
-    // Validate request
-    if (!code) {
-      return res.status(400).json({ error: 'Missing required fields' });
-    }
-    
-    // For simplicity, we'll just run the code as is
-    const filePath = generateFile(language, code);
-    
-    try {
-      const output = await executeCpp(filePath);
-      cleanupFiles(filePath);
-      res.json({ output });
-    } catch (err) {
-      cleanupFiles(filePath);
-      res.status(500).json({ error: err.stderr || "Execution error" });
-    }
-  } catch (error) {
-    console.error('Error in execute endpoint:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
+
 
 // Submit solution endpoint
 router.post('/submit', async (req, res) => {
@@ -365,13 +659,25 @@ router.post('/submit', async (req, res) => {
     console.log(`Running ${testCases.length} test cases`);
     for (const testCase of testCases) {
       console.log(`Processing test case ${testCase.id}`);
-      const testCode = getTestCode(code, testCase.input, problemId);
+      const testCode = getTestCode(code, testCase.input, problemId, language);
       const filePath = generateFile(language, testCode);
       
       try {
         console.log(`Executing test case ${testCase.id}`);
-        const output = await executeCpp(filePath);
-        console.log(`Output: "${output.trim()}", Expected: "${testCase.expected.trim()}"`);
+        let output;
+        
+        if (language === 'cpp') {
+          output = await executeCpp(filePath);
+        } else if (language === 'java') {
+          output = await executeJava(filePath);
+        } else if (language === 'python') {
+          output = await executePython(filePath);
+        } else {
+          // Default to C++
+          output = await executeCpp(filePath);
+        }
+        
+        console.log(`Output: "${output.trim()}", Expected: "${testCase.expected.trim()}"`)
         const passed = output.trim() === testCase.expected.trim();
         
         if (!passed) {
@@ -389,7 +695,7 @@ router.post('/submit', async (req, res) => {
           passed
         });
         
-        cleanupFiles(filePath);
+        cleanupFiles(filePath, language);
       } catch (error) {
         console.error(`Error executing test case ${testCase.id}:`, error);
         allPassed = false;
@@ -401,7 +707,7 @@ router.post('/submit', async (req, res) => {
           passed: false
         });
         
-        cleanupFiles(filePath);
+        cleanupFiles(filePath, language);
       }
     }
     
@@ -415,18 +721,63 @@ router.post('/submit', async (req, res) => {
     
     await submission.save();
     console.log('Submission updated');
-    
-    res.json({ 
+
+    res.status(201).json({ 
       success: true, 
       submissionId: submission._id,
       status: submission.status,
       results: testResults,
       output: submission.output
     });
+
   } catch (error) {
-    console.error('Submission error:', error);
-    res.status(500).json({ error: error.message });
+    console.error('Error during submission processing:', error);
+    // The submission might not have been created if the error occurred before it was saved
+    if (req.body.problemId && req.user?._id) {
+        const submission = await Submission.findOne({ problemId: req.body.problemId, userId: req.user._id }).sort({ createdAt: -1 });
+        if (submission) {
+            submission.status = 'error';
+            submission.output = error.stderr || 'An unknown error occurred';
+            await submission.save();
+        }
+    }
+    res.status(500).json({ success: false, error: 'Failed to process submission' });
   }
 });
+
+// Route: /api/code/custom-run
+router.post('/custom-run', async (req, res) => {
+  try {
+    const { code, language = 'cpp', problemId, input = "" } = req.body;
+
+    if (!code || !problemId) {
+      return res.status(400).json({ error: "Code and problem ID are required" });
+    }
+
+    // Inject test code with main() dynamically
+    const testCode = getTestCode(code, input, problemId, language);
+
+    const filePath = generateFile(language, testCode);
+
+    let output;
+    if (language === "cpp") {
+      output = await executeCpp(filePath);
+    } else if (language === "java") {
+      output = await executeJava(filePath);
+    } else if (language === "python") {
+      output = await executePython(filePath);
+    } else {
+      return res.status(400).json({ error: "Unsupported language" });
+    }
+
+    cleanupFiles(filePath, language);
+    res.json({ output });
+
+  } catch (error) {
+    console.error('Custom run error:', error);
+    res.status(500).json({ error: error.stderr || error.message || 'Execution failed' });
+  }
+});
+
 
 module.exports = router;
