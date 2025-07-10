@@ -8,6 +8,7 @@ const mongoose = require('mongoose');
 const { ObjectId } = mongoose.Types;
 const { executeJava, cleanupJava } = require('../utils/executeJava.js');
 const { runCode } = require('../controllers/customController.js');
+const { analyzeCode } = require('../services/aiCodeAnalysis');
 
 function generateFile(language, code) {
   const tempDir = path.join(__dirname, '..', 'temp');
@@ -603,6 +604,26 @@ router.post('/run', async (req, res) => {
   }
 });
 
+// AI analysis endpoint
+router.post('/analyze', async (req, res) => {
+  try {
+    const { code, language, problemId } = req.body;
+    
+    if (!code || !language || !problemId) {
+      return res.status(400).json({ error: 'Missing required fields' });
+    }
+    
+    const analysis = await analyzeCode(code, language, problemId, true);
+    
+    res.json({
+      success: true,
+      analysis
+    });
+  } catch (error) {
+    console.error('Code analysis error:', error);
+    res.status(500).json({ error: error.message });
+  }
+}); 
 
 
 // Submit solution endpoint
@@ -721,27 +742,53 @@ router.post('/submit', async (req, res) => {
     
     await submission.save();
     console.log('Submission updated');
-
-    res.status(201).json({ 
-      success: true, 
-      submissionId: submission._id,
-      status: submission.status,
-      results: testResults,
-      output: submission.output
-    });
-
-  } catch (error) {
-    console.error('Error during submission processing:', error);
-    // The submission might not have been created if the error occurred before it was saved
-    if (req.body.problemId && req.user?._id) {
-        const submission = await Submission.findOne({ problemId: req.body.problemId, userId: req.user._id }).sort({ createdAt: -1 });
-        if (submission) {
-            submission.status = 'error';
-            submission.output = error.stderr || 'An unknown error occurred';
-            await submission.save();
-        }
+    
+    // Check if AI analysis is requested
+    if (req.query.analyze === 'true') {
+      try {
+        console.log('AI analysis requested, generating code analysis');
+        
+        // Import the analyzeCode function
+        const { analyzeCode } = require('../services/aiCodeAnalysis');
+        
+        // Generate AI analysis
+        const analysis = await analyzeCode(code, language, problemId, allPassed);
+        
+        // Send response with analysis
+        res.json({ 
+          success: true, 
+          submissionId: submission._id,
+          status: submission.status,
+          results: testResults,
+          output: submission.output,
+          analysis: analysis // Include AI analysis in response
+        });
+      } catch (analysisError) {
+        console.error('Error generating AI analysis:', analysisError);
+        
+        // Send response without analysis due to error
+        res.json({ 
+          success: true, 
+          submissionId: submission._id,
+          status: submission.status,
+          results: testResults,
+          output: submission.output,
+          analysisError: 'Failed to generate AI analysis'
+        });
+      }
+    } else {
+      // Standard response without analysis
+      res.json({ 
+        success: true, 
+        submissionId: submission._id,
+        status: submission.status,
+        results: testResults,
+        output: submission.output
+      });
     }
-    res.status(500).json({ success: false, error: 'Failed to process submission' });
+  } catch (error) {
+    console.error('Submission error:', error);
+    res.status(500).json({ error: error.message });
   }
 });
 
