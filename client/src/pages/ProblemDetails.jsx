@@ -6,6 +6,12 @@ import { auth } from "../auth/auth.js";
 import { problems } from '../data/problems';
 import TwoSum from "../components/problems/TwoSum";
 import AddTwoNumbers from "../components/problems/AddTwoNumbers";
+import LongestSubstring from "../components/problems/LongestSubstring";
+import ValidPalindrome from "../components/problems/ValidPalindrome";
+import ValidAnagram from "../components/problems/ValidAnagram";
+import ReverseString from "../components/problems/ReverseString";
+import PalindromeNumber from "../components/problems/PalindromeNumber";
+import Permutations from "../components/problems/Permutations";
 import CodeEditor from '../components/CodeEditor';
 
 import CppTemplates from '../templates/CppTemplates';
@@ -207,7 +213,13 @@ function ProblemDetails() {
 
   const ProblemComponent = {
     '1': TwoSum,
-    '2': AddTwoNumbers
+    '2': AddTwoNumbers,
+    '3': LongestSubstring,
+    '4': ValidAnagram,
+    '5': ReverseString,
+    '6': ValidPalindrome,
+    '7': PalindromeNumber,
+    '8': Permutations
   }[id];
 
   if (!ProblemComponent) return <div>Problem not found</div>;
@@ -242,6 +254,13 @@ function ProblemDetails() {
             problem={problem}
             code={code}
             setCode={setCode}
+            language={language}
+            handleRunBuiltIn={handleRunBuiltIn}
+            handleRunCustom={handleRunCustom}
+            customInput={customInput}
+            setCustomInput={setCustomInput}
+            output={output}
+            loading={loading}
           />
 
           <div className="mt-4">

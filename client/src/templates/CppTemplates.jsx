@@ -30,15 +30,79 @@ const CppTemplates = {
           return NULL;
       }
   };`,
-  
+    '3': `// Longest Substring Without Repeating Characters
+  #include <iostream>
+  #include <string>
+  #include <unordered_set>
+  using namespace std;
+  class Solution {
+  public:
+      int lengthOfLongestSubstring(string s) {
+          // Write your code here
+          return 0;
+      }
+  };`,
+    '4': `// Valid Anagram
+  #include <iostream>
+  #include <string>
+  #include <unordered_map>
+  using namespace std;
+  class Solution {
+  public:
+      bool isAnagram(string s, string t) {
+          // Write your code here
+          return false;
+      }
+  };`,
+    '5': `// Reverse String
+  #include <iostream>
+  #include <string>
+  using namespace std;
+  class Solution {
+  public:
+      void reverseString(vector<char>& s) {
+          // Write your code here
+      }
+  };`,
+    '6': `// Valid Palindrome
+  #include <iostream>
+  #include <string>
+  using namespace std;
+  class Solution {
+  public:
+      bool isPalindrome(string s) {
+          // Write your code here
+          return false;
+      }
+  };`,
+    '7': `// Palindrome Number
+  #include <iostream>
+  using namespace std;
+  class Solution {
+  public:
+      bool isPalindrome(int x) {
+          // Write your code here
+          return false;
+      }
+  };`,
+    '8': `// Permutations
+  #include <iostream>
+  #include <vector>
+  using namespace std;
+  class Solution {
+  public:
+      vector<vector<int>> permute(vector<int>& nums) {
+          // Write your code here
+          return vector<vector<int>>();
+      }
+  };`,
     default: (title, functionSignature = '') => `// ${title}
   #include <iostream>
   #include <vector>
   using namespace std;
-  
-  // ${functionSignature}
-  `
-  };
-  
-  export default CppTemplates;
-  
+  class Solution {
+  public:
+      ${functionSignature}
+  };`
+};
+export default CppTemplates;
