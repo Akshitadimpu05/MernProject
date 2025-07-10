@@ -23,7 +23,7 @@ const ProtectedRoute = ({ children }) => {
   }, [isAuthenticated, dispatch]);
   
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-[#1A1A1D]">
+    return <div className="min-h-screen flex items-center justify-center bg-[#FFB6C1]">
       <div className="text-white text-xl">Loading...</div>
     </div>;
   }
