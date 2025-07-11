@@ -9,14 +9,13 @@ require('dotenv').config();
 // Import routes
 const authRoutes = require('./routes/authRoutes');
 const codeRoutes = require('./routes/codeRoutes');
+const adminRoutes = require('./routes/adminRoutes');
+const contestRoutes = require('./routes/contestRoutes');
+const problemRoutes = require('./routes/problemRoutes');
 
 // MongoDB connection - using your existing .env config
 const MONGODB_URI = process.env.MONGO_URI;
-mongoose.connect(MONGODB_URI)
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => console.error('MongoDB connection error:', err));
 
-// Initialize Express app
 const app = express();
 
 // Middleware
@@ -35,37 +34,12 @@ if (!fs.existsSync(outputDir)) {
   fs.mkdirSync(outputDir, { recursive: true });
 }
 
-// Authentication middleware
-app.use((req, res, next) => {
-  // Skip auth for login and register routes
-  if (req.path === '/api/auth/login' || 
-      req.path === '/api/auth/register' || 
-      req.path === '/health') {
-    return next();
-  }
-  
-  // Get token from header
-  const token = req.headers.authorization?.split(' ')[1];
-  
-  if (!token) {
-    return res.status(401).json({ error: 'No token, authorization denied' });
-  }
-  
-  try {
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-    
-    // Add user from payload to request
-    req.user = { _id: decoded.user.id };
-    next();
-  } catch (err) {
-    res.status(401).json({ error: 'Token is not valid' });
-  }
-});
-
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/code', codeRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/contests', contestRoutes);
+app.use('/api/problems', problemRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -78,10 +52,18 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: 'Something went wrong!', error: err.message });
 });
 
-// Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+
+mongoose.connect(MONGODB_URI)
+  .then(() => {
+    console.log('MongoDB connected');
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  })
+  .catch(err => {
+    console.error('MongoDB connection error:', err);
+    process.exit(1);
+  });
 
 module.exports = app;

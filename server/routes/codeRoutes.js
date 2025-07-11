@@ -8,6 +8,7 @@ const mongoose = require('mongoose');
 const { ObjectId } = mongoose.Types;
 const { executeJava, cleanupJava } = require('../utils/executeJava.js');
 const { analyzeCode } = require('../services/aiCodeAnalysis');
+const { protect } = require('../middlewares/authMiddleware');
 
 function generateFile(language, code) {
   const tempDir = path.join(__dirname, '..', 'temp');
@@ -1254,7 +1255,7 @@ function formatCustomInput(input, problemId) {
 
 // ================= API ENDPOINTS =================
 // Run code endpoint
-router.post('/run', async (req, res) => {
+router.post('/run', protect, async (req, res) => {
   console.log('Run code endpoint called');
   
   try {
@@ -1326,7 +1327,7 @@ router.post('/analyze', async (req, res) => {
 });
 
 // Submit solution endpoint
-router.post('/submit', async (req, res) => {
+router.post('/submit', protect, async (req, res) => {
   console.log('Submit solution endpoint called');
   
   try {
@@ -1489,7 +1490,7 @@ router.post('/submit', async (req, res) => {
 });
 
 // Route: /api/code/custom-run
-router.post('/custom-run', async (req, res) => {
+router.post('/custom-run', protect, async (req, res) => {
   try {
     const { code, language = 'cpp', problemId, input: customInput = "" } = req.body;
     
