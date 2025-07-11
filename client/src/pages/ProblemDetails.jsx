@@ -23,7 +23,7 @@ function ProblemDetails() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const { user, isAuthenticated } = useSelector(state => state.user);
+  const { user, isAuthenticated, token } = useSelector(state => state.user);
 
   const [problem, setProblem] = useState(null);
   const [code, setCode] = useState("");
@@ -84,7 +84,11 @@ function ProblemDetails() {
     try {
       setLoading(true);
       setOutput("Running with built-in test case...");
-      const token = auth.getToken();
+      if (!token) {
+        setOutput("Authentication error: Not logged in.");
+        setLoading(false);
+        return;
+      }
       const res = await fetch(`/api/code/run`, {
         method: "POST",
         headers: {
@@ -106,7 +110,11 @@ function ProblemDetails() {
     try {
       setLoading(true);
       setOutput("Running with custom input...");
-      const token = auth.getToken();
+      if (!token) {
+        setOutput("Authentication error: Not logged in.");
+        setLoading(false);
+        return;
+      }
       const res = await fetch(`/api/code/custom-run`, {
         method: "POST",
         headers: {
@@ -128,7 +136,11 @@ function ProblemDetails() {
     try {
       setLoading(true);
       setOutput("Submitting solution...");
-      const token = auth.getToken();
+      if (!token) {
+        setOutput("Authentication error: Not logged in.");
+        setLoading(false);
+        return;
+      }
       const res = await fetch(`/api/code/submit?analyze=true`, {
         method: "POST",
         headers: {

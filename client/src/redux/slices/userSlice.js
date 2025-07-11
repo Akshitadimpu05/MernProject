@@ -102,7 +102,7 @@ export const logoutUser = createAsyncThunk(
 
 const initialState = {
   user: null,
-  token: localStorage.getItem('token') || null,
+  token: localStorage.getItem('token'), // Initialize token from localStorage
   isAuthenticated: !!localStorage.getItem('token'),
   loading: false,
   error: null,
@@ -167,13 +167,15 @@ const userSlice = createSlice({
             action.payload === 'Token is not valid') {
           state.isAuthenticated = false;
           state.user = null;
-          state.token = null;
+          state.token = null; // Clear token from state
+          state.error = null;
         }
       })
       
       // Logout cases
       .addCase(logoutUser.fulfilled, (state) => {
         state.user = null;
+        state.token = null; // Clear token from state
         state.token = null;
         state.isAuthenticated = false;
       });

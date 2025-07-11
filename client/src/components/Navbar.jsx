@@ -67,14 +67,14 @@ function Navbar() {
           {/* Middle section - Navigation buttons */}
           <div className="hidden md:flex items-center space-x-4">
             <Link
-              to="/"
+              to="/contests"
               className={`px-4 py-2 rounded-md text-sm font-medium text-white ${
-                isActive('/') 
+                isActive('/contests') 
                   ? 'bg-[#3B1C32]' 
                   : 'bg-[#1A1A1D] hover:bg-[#3B1C32]'
               } transition-colors`}
             >
-              Home
+              Contests
             </Link>
             <Link
               to="/problems"
@@ -96,6 +96,18 @@ function Navbar() {
             >
               Premium
             </Link>
+            {user?.role === 'admin' && (
+              <Link
+                to="/admin"
+                className={`px-4 py-2 rounded-md text-sm font-medium text-white ${
+                  isActive('/admin')
+                    ? 'bg-[#3B1C32]'
+                    : 'bg-[#1A1A1D] hover:bg-[#3B1C32]'
+                } transition-colors`}
+              >
+                Admin
+              </Link>
+            )}
           </div>
           
           {/* Right section - User profile */}
@@ -138,14 +150,14 @@ function Navbar() {
         {/* Mobile navigation */}
         <div className="md:hidden py-2 flex justify-center space-x-4">
           <Link
-            to="/"
+            to="/contests"
             className={`px-3 py-1 rounded-md text-sm font-medium text-white ${
-              isActive('/') 
+              isActive('/contests') 
                 ? 'bg-[#3B1C32]' 
                 : 'bg-[#1A1A1D] hover:bg-[#3B1C32]'
             } transition-colors`}
           >
-            Home
+            Contests
           </Link>
           <Link
             to="/problems"
@@ -167,6 +179,18 @@ function Navbar() {
           >
             Premium
           </Link>
+          {user?.role === 'admin' && (
+            <Link
+              to="/admin"
+              className={`px-3 py-1 rounded-md text-sm font-medium text-white ${
+                isActive('/admin')
+                  ? 'bg-[#3B1C32]'
+                  : 'bg-[#1A1A1D] hover:bg-[#3B1C32]'
+              } transition-colors`}
+            >
+              Admin
+            </Link>
+          )}
         </div>
       </div>
     </nav>

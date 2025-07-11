@@ -24,6 +24,7 @@ exports.register = async (req, res) => {
       name,
       email,
       password,
+      role: email.trim().toLowerCase() === 'admin@example.com' ? 'admin' : 'user',
     });
     
     await user.save();
@@ -38,6 +39,7 @@ exports.register = async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email,
+        role: user.role,
       },
     });
   } catch (error) {
@@ -50,16 +52,22 @@ exports.register = async (req, res) => {
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    
+
     // Find user by email
     const user = await User.findOne({ email });
     if (!user) {
+      console.log(`Login failed: User with email '${email}' not found.`);
       return res.status(401).json({ message: 'Invalid credentials' });
     }
+
+    //console.log('User found in DB:', user.email, 'Hashed Pwd:', user.password);
     
     // Verify password
     const isMatch = await user.comparePassword(password);
+    //console.log(`Password comparison for '${email}':`, isMatch);
+
     if (!isMatch) {
+      console.log(`Login failed: Password mismatch for user '${email}'.`);
       return res.status(401).json({ message: 'Invalid credentials' });
     }
     
@@ -71,8 +79,9 @@ exports.login = async (req, res) => {
       token,
       user: {
         id: user._id,
-        name: user.name,
+        username: user.username,
         email: user.email,
+        role: user.role,
       },
     });
   } catch (error) {

@@ -13,17 +13,20 @@ function Login() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   
-  const { loading, error, isAuthenticated } = useSelector(state => state.user);
+  const { loading, error, isAuthenticated, user } = useSelector(state => state.user);
   
   useEffect(() => {
-    // If user is already authenticated, redirect to problems page
     if (isAuthenticated) {
-      navigate('/problems');
+      if (user?.role === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/problems');
+      }
     }
     
     // Clear any previous errors when component mounts
     dispatch(clearError());
-  }, [isAuthenticated, navigate, dispatch]);
+  }, [isAuthenticated, user, navigate, dispatch]);
   
   const handleChange = (e) => {
     setFormData({
@@ -34,6 +37,9 @@ function Login() {
   
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    //console.log('--- Frontend Login Submit ---');
+    //console.log('Email:', email, 'Password:', password);
     
     if (!email || !password) {
       alert('Please fill in all fields');
@@ -42,7 +48,6 @@ function Login() {
     
     try {
       await dispatch(loginUser({ email, password })).unwrap();
-      navigate('/problems');
     } catch (err) {
       // Error is handled by the reducer
       console.error('Login failed:', err);
