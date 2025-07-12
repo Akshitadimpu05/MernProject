@@ -1,4 +1,6 @@
 import React, { useEffect } from 'react';
+import './styles/theme.css'; // Import our custom theme styles
+import './styles/custom-colors.css'; // Import custom color overrides
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { getCurrentUser } from './redux/slices/userSlice';
@@ -81,12 +83,12 @@ function App() {
       <Routes>
         {/* Public routes */}
         <Route path="/login" element={
-          <div className="min-h-screen bg-[#1A1A1D]">
+          <div className="min-h-screen bg-dark-bg">
             <Login />
           </div>
         } />
         <Route path="/register" element={
-          <div className="min-h-screen bg-[#1A1A1D]">
+          <div className="min-h-screen bg-dark-bg">
             <Register />
           </div>
         } />

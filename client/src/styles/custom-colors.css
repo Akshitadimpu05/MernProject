@@ -1,0 +1,70 @@
+/* Custom color overrides for AlgoWebApp */
+
+/* Background colors */
+.bg-primary-pink {
+  background-color: #FF4081 !important;
+}
+
+.bg-secondary-pink {
+  background-color: #F06292 !important;
+}
+
+.bg-dark-bg {
+  background-color: #121212 !important;
+}
+
+.bg-dark-surface {
+  background-color: #1E1E1E !important;
+}
+
+/* Text colors */
+.text-primary-pink {
+  color: #FF4081 !important;
+}
+
+.text-secondary-pink {
+  color: #F06292 !important;
+}
+
+.text-accent-pink {
+  color: #FF80AB !important;
+}
+
+.text-white {
+  color: #FFFFFF !important;
+}
+
+.text-text-secondary {
+  color: #B0B0B0 !important;
+}
+
+/* Border colors */
+.border-primary-pink {
+  border-color: #FF4081 !important;
+}
+
+.border-secondary-pink {
+  border-color: #F06292 !important;
+}
+
+.border-dark-bg {
+  border-color: #121212 !important;
+}
+
+.border-dark-surface {
+  border-color: #1E1E1E !important;
+}
+
+/* Loading screen overrides */
+.loading-screen {
+  background-color: #FF4081 !important;
+}
+
+/* Override the background colors in the app */
+.min-h-screen.bg-\[\#FFB6C1\] {
+  background-color: #FF4081 !important;
+}
+
+.min-h-screen.bg-\[\#1A1A1D\] {
+  background-color: #121212 !important;
+}
