@@ -12,6 +12,7 @@ const codeRoutes = require('./routes/codeRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const contestRoutes = require('./routes/contestRoutes');
 const problemRoutes = require('./routes/problemRoutes');
+const submissionRoutes = require('./routes/submissionRoutes');
 
 // MongoDB connection - using your existing .env config
 const MONGODB_URI = process.env.MONGO_URI;
@@ -40,6 +41,7 @@ app.use('/api/code', codeRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/contests', contestRoutes);
 app.use('/api/problems', problemRoutes);
+app.use('/api/submissions', submissionRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

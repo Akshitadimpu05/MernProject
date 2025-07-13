@@ -297,10 +297,10 @@ function ProblemDetails() {
   };
 
   return (
-    <div className="min-h-screen bg-dark-bg text-white">
-      <div className="container mx-auto p-4">
-        {/* Header with problem title and language selector */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 border-b border-gray-700 pb-4">
+    <div className="h-screen bg-dark-bg text-white overflow-hidden flex flex-col">
+      {/* Fixed header with problem title and language selector */}
+      <div className="bg-dark-surface border-b border-gray-700 py-3 px-6">
+        <div className="container mx-auto flex flex-col md:flex-row justify-between items-start md:items-center">
           <div>
             <h1 className="text-2xl font-bold text-primary-pink">{problem.title}</h1>
             <div className="flex items-center mt-1">
@@ -313,7 +313,7 @@ function ProblemDetails() {
             <select 
               value={language} 
               onChange={(e) => handleLanguageChange(e.target.value)} 
-              className="bg-dark-surface text-white border border-gray-700 rounded px-3 py-1"
+              className="bg-dark-bg text-white border border-gray-700 rounded px-3 py-1"
             >
               <option value="cpp">C++</option>
               <option value="java">Java</option>
@@ -322,12 +322,14 @@ function ProblemDetails() {
             {user && <span className="text-text-secondary">👋 {user.username}</span>}
           </div>
         </div>
+      </div>
 
-        {/* Main content area with two columns */}
-        <div className="flex flex-col lg:flex-row gap-6">
-          {/* Left column: Problem description */}
-          <div className="w-full lg:w-2/5 order-2 lg:order-1">
-            <div className="bg-dark-surface p-6 rounded-lg">
+      {/* Main content area with fixed height and two columns */}
+      <div className="flex-1 overflow-hidden">
+        <div className="container mx-auto h-full flex flex-col lg:flex-row">
+          {/* Left column: Problem description - scrollable */}
+          <div className="w-full lg:w-2/5 h-full overflow-y-auto p-4 custom-scrollbar">
+            <div className="bg-dark-surface p-6 rounded-lg h-full">
               <h2 className="text-xl font-semibold mb-4 text-primary-pink">Problem Description</h2>
               <div className="prose prose-invert max-w-none">
                 <p className="whitespace-pre-wrap text-text-secondary">{problem.description}</p>
@@ -360,16 +362,16 @@ function ProblemDetails() {
             </div>
           </div>
 
-          {/* Right column: Code editor and output */}
-          <div className="w-full lg:w-3/5 order-1 lg:order-2">
-            <div className="bg-dark-surface p-6 rounded-lg">
-              {/* Code editor component */}
-              <div className="mb-6">
-                <div className="flex justify-between items-center mb-2">
-                  <h2 className="text-lg font-semibold text-primary-pink">Solution</h2>
-                  <div className="text-sm text-text-secondary">{language === 'cpp' ? 'C++' : language === 'java' ? 'Java' : 'Python'}</div>
-                </div>
-                
+          {/* Right column: Split into code editor (top) and output/controls (bottom) */}
+          <div className="w-full lg:w-3/5 h-full flex flex-col p-4">
+            {/* Top half: Code editor */}
+            <div className="h-1/2 bg-dark-surface p-4 rounded-lg mb-4 overflow-hidden flex flex-col">
+              <div className="flex justify-between items-center mb-2">
+                <h2 className="text-lg font-semibold text-primary-pink">Solution</h2>
+                <div className="text-sm text-text-secondary">{language === 'cpp' ? 'C++' : language === 'java' ? 'Java' : 'Python'}</div>
+              </div>
+              
+              <div className="flex-1 overflow-hidden">
                 <ProblemComponent
                   problem={problem}
                   code={code}
@@ -383,50 +385,52 @@ function ProblemDetails() {
                   loading={loading}
                 />
               </div>
+            </div>
 
-              {/* Action buttons and custom input in a scrollable container */}
-              <div className="max-h-[calc(100vh-500px)] overflow-y-auto pr-2 custom-scrollbar">
-                <div className="mb-4">
-                  <label className="block font-semibold mb-2 text-accent-pink">Custom Input</label>
-                  <textarea
-                    value={customInput}
-                    onChange={(e) => setCustomInput(e.target.value)}
-                    className="w-full h-24 p-3 bg-dark-bg border border-gray-700 rounded-lg text-white"
-                    placeholder="e.g. [2,4,3], [5,6,4]"
-                  />
-                </div>
+            {/* Bottom half: Controls and output */}
+            <div className="h-1/2 bg-dark-surface p-4 rounded-lg overflow-y-auto custom-scrollbar">
+              {/* Custom input */}
+              <div className="mb-4">
+                <label className="block font-semibold mb-2 text-accent-pink">Custom Input</label>
+                <textarea
+                  value={customInput}
+                  onChange={(e) => setCustomInput(e.target.value)}
+                  className="w-full h-20 p-3 bg-dark-bg border border-gray-700 rounded-lg text-white"
+                  placeholder="e.g. [2,4,3], [5,6,4]"
+                />
+              </div>
 
-                <div className="flex flex-wrap gap-3">
-                  <button 
-                    onClick={handleRunBuiltInWithToast} 
-                    disabled={loading}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center disabled:bg-gray-700 disabled:cursor-not-allowed"
-                  >
-                    {loading ? 'Running...' : '▶️ Run Code'}
-                  </button>
-                  <button 
-                    onClick={handleRunCustomWithToast} 
-                    disabled={loading || !customInput.trim()}
-                    className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition-colors flex items-center disabled:bg-gray-700 disabled:cursor-not-allowed"
-                  >
-                    {loading ? 'Running...' : '🧪 Custom Run'}
-                  </button>
-                  <button 
-                    onClick={handleSubmitWithToast} 
-                    disabled={loading}
-                    className="px-4 py-2 bg-primary-pink hover:bg-secondary-pink text-white rounded-lg transition-colors flex items-center disabled:bg-gray-700 disabled:cursor-not-allowed"
-                  >
-                    {loading ? 'Submitting...' : '✅ Submit'}
-                  </button>
-                </div>
+              {/* Action buttons */}
+              <div className="flex flex-wrap gap-3 mb-4">
+                <button 
+                  onClick={handleRunBuiltInWithToast} 
+                  disabled={loading}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center disabled:bg-gray-700 disabled:cursor-not-allowed shadow-lg"
+                >
+                  {loading ? 'Running...' : '▶️ Run Code'}
+                </button>
+                <button 
+                  onClick={handleRunCustomWithToast} 
+                  disabled={loading || !customInput.trim()}
+                  className="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-lg transition-colors flex items-center disabled:bg-gray-700 disabled:cursor-not-allowed shadow-lg"
+                >
+                  {loading ? 'Running...' : '🧪 Custom Run'}
+                </button>
+                <button 
+                  onClick={handleSubmitWithToast} 
+                  disabled={loading}
+                  className="px-4 py-2 bg-primary-pink hover:bg-secondary-pink text-white rounded-lg transition-colors flex items-center disabled:bg-gray-700 disabled:cursor-not-allowed shadow-lg"
+                >
+                  {loading ? 'Submitting...' : '✅ Submit'}
+                </button>
+              </div>
 
-                {/* Output section */}
-                <div className="mt-6">
-                  <h2 className="text-lg font-semibold mb-2 text-accent-pink">Output</h2>
-                  <pre className="bg-dark-bg text-white p-4 rounded-lg overflow-x-auto min-h-[100px] max-h-[300px] overflow-y-auto">
-                    {loading ? 'Processing...' : output || 'Run your code to see output here'}
-                  </pre>
-                </div>
+              {/* Output section */}
+              <div>
+                <h2 className="text-lg font-semibold mb-2 text-accent-pink">Output</h2>
+                <pre className="bg-dark-bg text-white p-4 rounded-lg overflow-x-auto min-h-[120px] max-h-[200px] overflow-y-auto shadow-inner">
+                  {loading ? 'Processing...' : output || 'Run your code to see output here'}
+                </pre>
               </div>
             </div>
           </div>

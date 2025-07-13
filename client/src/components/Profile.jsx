@@ -27,55 +27,120 @@ function Profile() {
   const fetchUserStats = async () => {
     try {
       setLoading(true);
-      // This would be a real API call in production
-      // const response = await fetch('/api/user/stats', {
-      //   headers: { Authorization: `Bearer ${auth.getToken()}` }
-      // });
-      // const data = await response.json();
-      // setStats(data);
-
-      // Mock data for now
-      setTimeout(() => {
-        setStats({
-          solved: 12,
-          attempted: 18,
-          totalSubmissions: 42,
-          streak: 5,
-          rank: 'Intermediate',
-          points: 1250,
-          easyCount: 7,
-          mediumCount: 4,
-          hardCount: 1
+      // Try to get stats from the API
+      try {
+        const response = await fetch('/api/submissions/stats', {
+          headers: { Authorization: `Bearer ${auth.getToken()}` }
         });
-        setLoading(false);
-      }, 500);
+        
+        if (response.ok) {
+          const data = await response.json();
+          setStats(data);
+          setLoading(false);
+          return;
+        }
+      } catch (apiError) {
+        console.error('API error:', apiError);
+        // Continue to fallback if API fails
+      }
+
+      // Calculate stats from submissions if we have them
+      if (submissions.length > 0) {
+        // Get unique problems solved (count each problem only once regardless of language)
+        const uniqueProblemsSolved = new Set();
+        const uniqueProblemsAttempted = new Set();
+        let easyCount = 0;
+        let mediumCount = 0;
+        let hardCount = 0;
+        
+        submissions.forEach(submission => {
+          uniqueProblemsAttempted.add(submission.problemId);
+          
+          if (submission.status === 'Accepted') {
+            uniqueProblemsSolved.add(submission.problemId);
+            
+            // Count difficulty if available
+            if (submission.difficulty === 'Easy') easyCount++;
+            else if (submission.difficulty === 'Medium') mediumCount++;
+            else if (submission.difficulty === 'Hard') hardCount++;
+          }
+        });
+        
+        setStats({
+          solved: uniqueProblemsSolved.size,
+          attempted: uniqueProblemsAttempted.size,
+          totalSubmissions: submissions.length,
+          streak: 5, // This would need to be calculated from submission dates
+          rank: calculateRank(uniqueProblemsSolved.size),
+          points: calculatePoints(uniqueProblemsSolved.size, submissions.length),
+          easyCount,
+          mediumCount,
+          hardCount
+        });
+      } else {
+        // Fallback mock data if no submissions and API failed
+        setStats({
+          solved: 0,
+          attempted: 0,
+          totalSubmissions: 0,
+          streak: 0,
+          rank: 'Beginner',
+          points: 0,
+          easyCount: 0,
+          mediumCount: 0,
+          hardCount: 0
+        });
+      }
+      
+      setLoading(false);
     } catch (error) {
       console.error('Error fetching user stats:', error);
       setLoading(false);
     }
   };
+  
+  // Helper functions for stats calculation
+  const calculateRank = (problemsSolved) => {
+    if (problemsSolved >= 50) return 'Expert';
+    if (problemsSolved >= 25) return 'Advanced';
+    if (problemsSolved >= 10) return 'Intermediate';
+    return 'Beginner';
+  };
+  
+  const calculatePoints = (problemsSolved, totalSubmissions) => {
+    // Simple formula: 100 points per problem solved + bonus for efficiency
+    return problemsSolved * 100 + Math.max(0, problemsSolved * 10 - (totalSubmissions - problemsSolved) * 5);
+  };
 
   const fetchSubmissions = async () => {
     try {
-      // This would be a real API call in production
-      // const response = await fetch('/api/user/submissions', {
-      //   headers: { Authorization: `Bearer ${auth.getToken()}` }
-      // });
-      // const data = await response.json();
-      // setSubmissions(data);
-
-      // Mock data for now
-      setTimeout(() => {
-        setSubmissions([
-          { id: 1, problemId: '1', problemName: 'Two Sum', status: 'Accepted', language: 'Python', runtime: '32ms', memory: '14.2 MB', timestamp: '2025-07-10T15:30:00' },
-          { id: 2, problemId: '3', problemName: 'Longest Substring', status: 'Wrong Answer', language: 'C++', runtime: '48ms', memory: '15.8 MB', timestamp: '2025-07-09T10:15:00' },
-          { id: 3, problemId: '7', problemName: 'Palindrome Number', status: 'Accepted', language: 'Java', runtime: '56ms', memory: '42.3 MB', timestamp: '2025-07-08T18:45:00' },
-          { id: 4, problemId: '4', problemName: 'Valid Anagram', status: 'Time Limit Exceeded', language: 'Python', runtime: 'N/A', memory: 'N/A', timestamp: '2025-07-07T09:20:00' },
-          { id: 5, problemId: '2', problemName: 'Add Two Numbers', status: 'Accepted', language: 'C++', runtime: '28ms', memory: '12.9 MB', timestamp: '2025-07-06T14:10:00' },
-        ]);
-      }, 500);
+      setLoading(true);
+      const response = await fetch('/api/submissions', {
+        headers: { Authorization: `Bearer ${auth.getToken()}` }
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch submissions');
+      }
+      
+      const data = await response.json();
+      // The API now returns data already sorted by timestamp descending
+      setSubmissions(data);
+      setLoading(false);
     } catch (error) {
       console.error('Error fetching submissions:', error);
+      // Fallback to mock data if API fails
+      const mockSubmissions = [
+        { id: 1, problemId: '1', problemName: 'Two Sum', status: 'Accepted', language: 'Python', runtime: '32ms', memory: '14.2 MB', timestamp: '2025-07-10T15:30:00', difficulty: 'Easy' },
+        { id: 2, problemId: '3', problemName: 'Longest Substring', status: 'Wrong Answer', language: 'C++', runtime: '48ms', memory: '15.8 MB', timestamp: '2025-07-09T10:15:00', difficulty: 'Medium' },
+        { id: 3, problemId: '7', problemName: 'Palindrome Number', status: 'Accepted', language: 'Java', runtime: '56ms', memory: '42.3 MB', timestamp: '2025-07-08T18:45:00', difficulty: 'Easy' },
+        { id: 4, problemId: '4', problemName: 'Valid Anagram', status: 'Time Limit Exceeded', language: 'Python', runtime: 'N/A', memory: 'N/A', timestamp: '2025-07-07T09:20:00', difficulty: 'Easy' },
+        { id: 5, problemId: '2', problemName: 'Add Two Numbers', status: 'Accepted', language: 'C++', runtime: '28ms', memory: '12.9 MB', timestamp: '2025-07-06T14:10:00', difficulty: 'Medium' },
+        { id: 6, problemId: '1', problemName: 'Two Sum', status: 'Accepted', language: 'Java', runtime: '45ms', memory: '39.5 MB', timestamp: '2025-07-05T11:20:00', difficulty: 'Easy' },
+        { id: 7, problemId: '9', problemName: 'Merge Sorted Arrays', status: 'Accepted', language: 'Python', runtime: '36ms', memory: '14.8 MB', timestamp: '2025-07-04T16:40:00', difficulty: 'Hard' },
+      ];
+      setSubmissions(mockSubmissions);
+      setLoading(false);
     }
   };
 
@@ -92,10 +157,12 @@ function Profile() {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'Accepted': return 'text-green-500';
-      case 'Wrong Answer': return 'text-red-500';
-      case 'Time Limit Exceeded': return 'text-yellow-500';
-      default: return 'text-gray-500';
+      case 'Accepted': return 'text-green-400';
+      case 'Wrong Answer': return 'text-red-400';
+      case 'Time Limit Exceeded': return 'text-yellow-400';
+      case 'Runtime Error': return 'text-orange-400';
+      case 'Compilation Error': return 'text-purple-400';
+      default: return 'text-gray-400';
     }
   };
 
@@ -284,42 +351,46 @@ function Profile() {
         )}
 
         {activeTab === 'submissions' && (
-          <div className="bg-dark-surface rounded-lg p-6 shadow-lg">
-            <h2 className="text-xl font-semibold mb-6 text-primary-pink">Submission History</h2>
+          <div className="bg-dark-surface rounded-lg shadow-md p-6 overflow-x-auto">
+            <h2 className="text-xl font-semibold mb-4 text-primary-pink">Recent Submissions</h2>
             
             {submissions.length === 0 ? (
               <div className="text-center py-8 text-text-secondary">
-                No submissions yet
+                <p>No submissions yet. Start solving problems!</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="min-w-full">
-                  <thead>
-                    <tr className="border-b border-gray-700">
-                      <th className="px-4 py-3 text-left text-sm font-medium text-text-secondary">Problem</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-text-secondary">Status</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-text-secondary">Language</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-text-secondary">Runtime</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-text-secondary">Memory</th>
-                      <th className="px-4 py-3 text-left text-sm font-medium text-text-secondary">Submitted</th>
+              <table className="min-w-full divide-y divide-gray-700">
+                <thead className="bg-dark-bg">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-primary-pink uppercase tracking-wider">Problem</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-primary-pink uppercase tracking-wider">Difficulty</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-primary-pink uppercase tracking-wider">Status</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-primary-pink uppercase tracking-wider">Language</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-primary-pink uppercase tracking-wider">Runtime</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-primary-pink uppercase tracking-wider">Memory</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-primary-pink uppercase tracking-wider">Submitted</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-dark-surface divide-y divide-gray-700">
+                  {submissions.map((submission) => (
+                    <tr key={submission.id} className="hover:bg-dark-bg transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">{submission.problemName}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <span className={`px-2 py-1 text-xs rounded ${submission.difficulty === 'Easy' ? 'bg-green-600' : submission.difficulty === 'Medium' ? 'bg-yellow-600' : 'bg-red-600'}`}>
+                          {submission.difficulty || 'Unknown'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <span className={getStatusColor(submission.status)}>{submission.status}</span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">{submission.language}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">{submission.runtime}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">{submission.memory}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">{formatDate(submission.timestamp)}</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {submissions.map((submission, index) => (
-                      <tr key={submission.id} className={index !== submissions.length - 1 ? 'border-b border-gray-800' : ''}>
-                        <td className="px-4 py-3 text-sm font-medium">{submission.problemName}</td>
-                        <td className="px-4 py-3 text-sm">
-                          <span className={`${getStatusColor(submission.status)}`}>{submission.status}</span>
-                        </td>
-                        <td className="px-4 py-3 text-sm text-text-secondary">{submission.language}</td>
-                        <td className="px-4 py-3 text-sm text-text-secondary">{submission.runtime}</td>
-                        <td className="px-4 py-3 text-sm text-text-secondary">{submission.memory}</td>
-                        <td className="px-4 py-3 text-sm text-text-secondary">{formatDate(submission.timestamp)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </table>
             )}
           </div>
         )}
