@@ -17,6 +17,8 @@ import Navbar from './components/Navbar';
 import AdminDashboard from './pages/AdminDashboard';
 import CreateContest from './pages/CreateContest';
 import CreateProblem from './pages/CreateProblem';
+import ContestProblem from './components/ContestProblem';
+import ContestSubmissionsView from './components/admin/ContestSubmissionsView';
 
 // Protected route component
 const ProtectedRoute = ({ children }) => {
@@ -97,8 +99,9 @@ function App() {
         <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
         <Route path="/contests" element={<ProtectedRoute><Contests /></ProtectedRoute>} />
         <Route path="/contests/:id" element={<ProtectedRoute><ContestDetails /></ProtectedRoute>} />
+        <Route path="/contests/:contestId/problems/:problemId/solve" element={<ProtectedRoute><ContestProblem /></ProtectedRoute>} />
         <Route path="/problems" element={<ProtectedRoute><Problems /></ProtectedRoute>} />
-        <Route path="/problem/:id" element={<ProtectedRoute><ProblemDetails /></ProtectedRoute>} />
+        <Route path="/problems/:id" element={<ProtectedRoute><ProblemDetails /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/premium" element={<ProtectedRoute><Premium /></ProtectedRoute>} />
 
@@ -106,6 +109,7 @@ function App() {
         <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
         <Route path="/admin/contest/create" element={<AdminRoute><CreateContest /></AdminRoute>} />
         <Route path="/admin/problem/create" element={<AdminRoute><CreateProblem /></AdminRoute>} />
+        <Route path="/admin/contests/:contestId/submissions" element={<AdminRoute><ContestSubmissionsView /></AdminRoute>} />
         
         {/* Fallback route */}
         <Route path="*" element={<Navigate to="/" />} />

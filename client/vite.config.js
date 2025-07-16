@@ -9,4 +9,12 @@ export default defineConfig({
       '/api': 'http://localhost:5000',
     },
   },
+  build: {
+    assetsInlineLimit: 0, // Ensures that videos are not inlined as base64
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      },
+    },
+  },
 })

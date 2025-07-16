@@ -12,39 +12,45 @@ exports.getUserSubmissions = async (req, res) => {
       .sort({ createdAt: -1 })
       .lean();
 
+    // Get all unique problem IDs from submissions
+    const problemIds = [...new Set(submissions.map(sub => sub.problemId))];
+    
+    // Fetch all problems in one query - handle the case where problemId might not be a valid ObjectId
+    const problems = await Problem.find({
+      $or: [
+        { _id: { $in: problemIds.filter(id => id.match(/^[0-9a-fA-F]{24}$/)) } },
+        { problemNumber: { $in: problemIds } }
+      ]
+    }).lean();
+    
+    // Create a map for quick problem lookup
+    const problemMap = {};
+    problems.forEach(problem => {
+      problemMap[problem._id] = problem;
+      // Also map by problemNumber if available
+      if (problem.problemNumber) {
+        problemMap[problem.problemNumber] = problem;
+      }
+    });
+
     // Enhance submissions with problem details
-    const enhancedSubmissions = await Promise.all(
-      submissions.map(async (submission) => {
-        try {
-          const problem = await Problem.findById(submission.problemId).lean();
-          
-          return {
-            id: submission._id,
-            problemId: submission.problemId,
-            problemName: problem ? problem.title : 'Unknown Problem',
-            difficulty: problem ? problem.difficulty : 'Unknown',
-            status: mapStatusToDisplay(submission.status),
-            language: submission.language,
-            runtime: `${submission.executionTime || 0}ms`,
-            memory: `${(submission.memoryUsed || 0).toFixed(1)} MB`,
-            timestamp: submission.createdAt
-          };
-        } catch (error) {
-          console.error(`Error processing submission ${submission._id}:`, error);
-          return {
-            id: submission._id,
-            problemId: submission.problemId,
-            problemName: 'Error retrieving problem',
-            difficulty: 'Unknown',
-            status: mapStatusToDisplay(submission.status),
-            language: submission.language,
-            runtime: `${submission.executionTime || 0}ms`,
-            memory: `${(submission.memoryUsed || 0).toFixed(1)} MB`,
-            timestamp: submission.createdAt
-          };
-        }
-      })
-    );
+    const enhancedSubmissions = submissions.map(submission => {
+      const problem = problemMap[submission.problemId];
+      
+      return {
+        id: submission._id,
+        problemId: submission.problemId,
+        problemName: problem ? problem.title : 'Unknown Problem',
+        difficulty: problem ? problem.difficulty : 'Unknown',
+        status: mapStatusToDisplay(submission.status),
+        language: submission.language || 'Unknown',
+        runtime: `${submission.executionTime || 0}ms`,
+        memory: `${(submission.memoryUsed || 0).toFixed(1)} MB`,
+        timestamp: submission.createdAt,
+        // Include the full problem object for reference if needed
+        problem: problem || null
+      };
+    });
 
     res.json(enhancedSubmissions);
   } catch (error) {
@@ -66,32 +72,41 @@ exports.getUserStats = async (req, res) => {
     // Calculate unique problems solved and attempted
     const uniqueProblemsSolved = new Set();
     const uniqueProblemsAttempted = new Set();
-    let easyCount = 0;
-    let mediumCount = 0;
-    let hardCount = 0;
     
-    // Process each submission
-    await Promise.all(
-      submissions.map(async (submission) => {
+    // Process submissions to get unique problem IDs
+    submissions.forEach(submission => {
+      if (submission.problemId) {
         uniqueProblemsAttempted.add(submission.problemId);
         
         if (submission.status === 'accepted') {
           uniqueProblemsSolved.add(submission.problemId);
-          
-          // Get problem difficulty
-          try {
-            const problem = await Problem.findById(submission.problemId).lean();
-            if (problem) {
-              if (problem.difficulty === 'Easy') easyCount++;
-              else if (problem.difficulty === 'Medium') mediumCount++;
-              else if (problem.difficulty === 'Hard') hardCount++;
-            }
-          } catch (error) {
-            console.error(`Error getting problem ${submission.problemId}:`, error);
-          }
         }
-      })
-    );
+      }
+    });
+    
+    // Get all solved problems to determine difficulty counts
+    const solvedProblemIds = [...uniqueProblemsSolved];
+    
+    // Handle the case where problemId might be a problem number instead of an ObjectId
+    const problems = await Problem.find({
+      $or: [
+        { _id: { $in: solvedProblemIds.filter(id => id.match(/^[0-9a-fA-F]{24}$/)) } },
+        { problemNumber: { $in: solvedProblemIds } }
+      ]
+    }).lean();
+    
+    console.log(`Found ${problems.length} problems out of ${solvedProblemIds.length} solved problem IDs`);
+    
+    // Count problems by difficulty
+    let easyCount = 0;
+    let mediumCount = 0;
+    let hardCount = 0;
+    
+    problems.forEach(problem => {
+      if (problem.difficulty === 'Easy') easyCount++;
+      else if (problem.difficulty === 'Medium') mediumCount++;
+      else if (problem.difficulty === 'Hard') hardCount++;
+    });
     
     // Calculate streak (simplified version)
     const streak = calculateStreak(submissions);
