@@ -126,17 +126,19 @@ function Home() {
         },
       });
       
-      // Tech stack section animation
-      gsap.from('.tech-item', {
-        opacity: 0,
-        stagger: 0.1,
-        y: 20,
-        duration: 0.5,
-        scrollTrigger: {
-          trigger: '.tech-stack',
-          start: 'top 80%',
-        }
-      });
+      // Only run tech stack animation if the element exists
+      if (document.querySelector('.tech-stack')) {
+        gsap.from('.tech-item', {
+          opacity: 0,
+          stagger: 0.1,
+          y: 20,
+          duration: 0.5,
+          scrollTrigger: {
+            trigger: '.tech-stack',
+            start: 'top 80%',
+          }
+        });
+      }
       
     }, comp);
     

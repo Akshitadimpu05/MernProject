@@ -1306,7 +1306,7 @@ router.post('/run', protect, async (req, res) => {
 });
 
 // AI analysis endpoint
-router.post('/analyze', async (req, res) => {
+router.post('/analyze', protect, async (req, res) => {
   try {
     const { code, language, problemId } = req.body;
     

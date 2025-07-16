@@ -6,7 +6,7 @@ function Problems() {
   const navigate = useNavigate();
   
   const handleProblemClick = (problem) => {
-    navigate(`/problem/${problem.id}`);
+    navigate(`/problems/${problem.id}`);
   };
 
   return (

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import AceEditor from 'react-ace';
 
@@ -11,6 +11,7 @@ import 'ace-builds/src-noconflict/theme-monokai';
 
 const ContestDetails = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const [contest, setContest] = useState(null);
   const [selectedProblem, setSelectedProblem] = useState(null);
   const [code, setCode] = useState('');
@@ -71,15 +72,26 @@ const ContestDetails = () => {
   
   const handleEnroll = async () => {
     try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('Please log in to enroll in this contest.');
+        return;
+      }
+      
       await axios.post(`/api/contests/${id}/enroll`, {}, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`
+          Authorization: `Bearer ${token}`
         }
       });
       setIsEnrolled(true);
       alert('Enrolled successfully!');
     } catch (error) {
-      alert(error.response?.data?.message || 'Failed to enroll.');
+      if (error.response?.status === 400 && error.response?.data?.message === 'Already enrolled in this contest') {
+        setIsEnrolled(true); // Update UI to show enrolled status
+        alert('You are already enrolled in this contest.');
+      } else {
+        alert(error.response?.data?.message || 'Failed to enroll in the contest.');
+      }
     }
   };
 
@@ -87,15 +99,53 @@ const ContestDetails = () => {
     if (!selectedProblem) return;
     setIsRunning(true);
     setOutput('');
+    
+    // Check if code is empty
+    if (!code.trim()) {
+      setOutput('Please write some code before running.');
+      setIsRunning(false);
+      return;
+    }
+    
     try {
-      const { data } = await axios.post('/api/code/run', {
-        problemId: selectedProblem._id,
+      const token = localStorage.getItem('token');
+      if (!token) {
+        setOutput('Authentication error: Not logged in. Please log in again.');
+        setIsRunning(false);
+        return;
+      }
+      
+      // Check if the code contains a main function for compiled languages
+      if (language === 'cpp' && !code.includes('main(') && !code.includes('int main')) {
+        setOutput('Error: Your C++ code must include a main() function.');
+        setIsRunning(false);
+        return;
+      }
+      
+      if (language === 'java' && !code.includes('public static void main')) {
+        setOutput('Error: Your Java code must include a public static void main(String[] args) method.');
+        setIsRunning(false);
+        return;
+      }
+      
+      // Use the contest-specific endpoint for running code
+      const { data } = await axios.post(`/api/contests/${id}/problems/${selectedProblem._id}/run`, {
         code,
         language,
+      }, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
       });
-      setOutput(data.output);
+      
+      setOutput(data.output || 'Code executed successfully but returned no output.');
     } catch (error) {
-      setOutput(error.response?.data?.error || 'An error occurred.');
+      console.error('Run code error:', error);
+      if (error.response?.status === 401) {
+        setOutput('Authentication error: Your session has expired. Please log in again.');
+      } else {
+        setOutput(error.response?.data?.error || 'An error occurred while executing your code. Make sure your code includes all necessary functions and a main method.');
+      }
     } finally {
       setIsRunning(false);
     }
@@ -106,8 +156,8 @@ const ContestDetails = () => {
     setIsRunning(true);
     setOutput('');
     try {
-      const { data } = await axios.post('/api/code/submit', {
-        problemId: selectedProblem._id,
+      // Use the contest-specific endpoint for submitting code
+      const { data } = await axios.post(`/api/contests/${id}/problems/${selectedProblem._id}/submit`, {
         code,
         language,
       }, {
@@ -242,6 +292,14 @@ const ContestDetails = () => {
                 />
 
                 <div className="mt-4 flex space-x-4">
+                  <button 
+                    onClick={() => navigate(`/contests/${id}/problems/${selectedProblem._id}/solve`)} 
+                    disabled={!isEnrolled || (contestStatus !== 'active')} 
+                    className="bg-pink-600 hover:bg-pink-700 px-4 py-2 rounded disabled:bg-gray-500"
+                    title={!isEnrolled ? 'You must enroll in the contest first' : contestStatus !== 'active' ? 'Contest is not active' : ''}
+                  >
+                    Solve Problem
+                  </button>
                   <button 
                     onClick={handleRunCode} 
                     disabled={isRunning || (contestStatus !== 'active')} 

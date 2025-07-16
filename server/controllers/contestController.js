@@ -86,10 +86,9 @@ exports.updateContest = async (req, res) => {
 // @access  Private/Admin
 exports.deleteContest = async (req, res) => {
   try {
-    const contest = await Contest.findById(req.params.id);
+    const contest = await Contest.findByIdAndDelete(req.params.id);
 
     if (contest) {
-      await contest.remove();
       res.json({ message: 'Contest removed' });
     } else {
       res.status(404).json({ message: 'Contest not found' });

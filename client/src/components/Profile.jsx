@@ -13,13 +13,16 @@ function Profile() {
     totalSubmissions: 0,
     streak: 0,
     rank: 'Beginner',
-    points: 0
+    points: 0,
+    easyCount: 0,
+    mediumCount: 0,
+    hardCount: 0
   });
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (user) {
-      fetchUserStats();
+      // First fetch submissions, then fetch stats
       fetchSubmissions();
     }
   }, [user]);
@@ -27,75 +30,112 @@ function Profile() {
   const fetchUserStats = async () => {
     try {
       setLoading(true);
-      // Try to get stats from the API
-      try {
-        const response = await fetch('/api/submissions/stats', {
-          headers: { Authorization: `Bearer ${auth.getToken()}` }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setStats(data);
-          setLoading(false);
-          return;
+      const response = await fetch('/api/submissions/stats', {
+        headers: { 
+          Authorization: `Bearer ${auth.getToken()}` 
         }
-      } catch (apiError) {
-        console.error('API error:', apiError);
-        // Continue to fallback if API fails
-      }
-
-      // Calculate stats from submissions if we have them
-      if (submissions.length > 0) {
-        // Get unique problems solved (count each problem only once regardless of language)
-        const uniqueProblemsSolved = new Set();
-        const uniqueProblemsAttempted = new Set();
-        let easyCount = 0;
-        let mediumCount = 0;
-        let hardCount = 0;
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('User stats from API:', data);
         
-        submissions.forEach(submission => {
+        // Check if we got valid data
+        if (data && typeof data === 'object') {
+          // Ensure all required fields are present, use defaults if not
+          const statsData = {
+            solved: data.solved || 0,
+            attempted: data.attempted || 0,
+            totalSubmissions: data.totalSubmissions || 0,
+            streak: data.streak || 0,
+            rank: data.rank || calculateRank(data.solved || 0),
+            points: data.points || 0,
+            easyCount: data.easyCount || 0,
+            mediumCount: data.mediumCount || 0,
+            hardCount: data.hardCount || 0
+          };
+          
+          setStats(statsData);
+          return; // Exit early since we have real data
+        } else {
+          console.warn('Invalid stats data format from API');
+        }
+      } else {
+        console.error(`Error fetching user stats: ${response.status}`);
+      }
+      
+      // If API fails or returns invalid data, calculate stats from submissions
+      calculateStatsFromSubmissions();
+    } catch (error) {
+      console.error('Error fetching user stats:', error);
+      // Fallback to calculating from submissions
+      calculateStatsFromSubmissions();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const calculateStatsFromSubmissions = () => {
+    if (submissions.length > 0) {
+      console.log('Calculating stats from submissions:', submissions);
+      
+      // Calculate unique problems solved and attempted
+      const uniqueProblemsSolved = new Set();
+      const uniqueProblemsAttempted = new Set();
+      
+      // Track problems by difficulty to avoid double counting
+      const solvedProblemsByDifficulty = {
+        Easy: new Set(),
+        Medium: new Set(),
+        Hard: new Set()
+      };
+      
+      submissions.forEach(submission => {
+        // Make sure we have a valid problemId
+        if (submission.problemId) {
           uniqueProblemsAttempted.add(submission.problemId);
           
           if (submission.status === 'Accepted') {
             uniqueProblemsSolved.add(submission.problemId);
             
-            // Count difficulty if available
-            if (submission.difficulty === 'Easy') easyCount++;
-            else if (submission.difficulty === 'Medium') mediumCount++;
-            else if (submission.difficulty === 'Hard') hardCount++;
+            // Add to the appropriate difficulty set
+            if (submission.difficulty === 'Easy') {
+              solvedProblemsByDifficulty.Easy.add(submission.problemId);
+            } else if (submission.difficulty === 'Medium') {
+              solvedProblemsByDifficulty.Medium.add(submission.problemId);
+            } else if (submission.difficulty === 'Hard') {
+              solvedProblemsByDifficulty.Hard.add(submission.problemId);
+            }
           }
-        });
-        
-        setStats({
-          solved: uniqueProblemsSolved.size,
-          attempted: uniqueProblemsAttempted.size,
-          totalSubmissions: submissions.length,
-          streak: 5, // This would need to be calculated from submission dates
-          rank: calculateRank(uniqueProblemsSolved.size),
-          points: calculatePoints(uniqueProblemsSolved.size, submissions.length),
-          easyCount,
-          mediumCount,
-          hardCount
-        });
-      } else {
-        // Fallback mock data if no submissions and API failed
-        setStats({
-          solved: 0,
-          attempted: 0,
-          totalSubmissions: 0,
-          streak: 0,
-          rank: 'Beginner',
-          points: 0,
-          easyCount: 0,
-          mediumCount: 0,
-          hardCount: 0
-        });
-      }
+        }
+      });
       
-      setLoading(false);
-    } catch (error) {
-      console.error('Error fetching user stats:', error);
-      setLoading(false);
+      // Count unique problems by difficulty
+      const easyCount = solvedProblemsByDifficulty.Easy.size;
+      const mediumCount = solvedProblemsByDifficulty.Medium.size;
+      const hardCount = solvedProblemsByDifficulty.Hard.size;
+      
+      const solved = uniqueProblemsSolved.size;
+      
+      console.log('Stats calculation results:', {
+        solved,
+        attempted: uniqueProblemsAttempted.size,
+        easyCount,
+        mediumCount,
+        hardCount
+      });
+      
+      setStats({
+        solved,
+        attempted: uniqueProblemsAttempted.size,
+        totalSubmissions: submissions.length,
+        streak: Math.min(5, Math.floor(submissions.length / 3)), // Simple streak calculation
+        rank: calculateRank(solved),
+        points: calculatePoints(solved, submissions.length),
+        easyCount,
+        mediumCount,
+        hardCount
+      });
     }
   };
   
@@ -116,30 +156,75 @@ function Profile() {
     try {
       setLoading(true);
       const response = await fetch('/api/submissions', {
-        headers: { Authorization: `Bearer ${auth.getToken()}` }
+        headers: { 
+          Authorization: `Bearer ${auth.getToken()}` 
+        }
       });
       
       if (!response.ok) {
-        throw new Error('Failed to fetch submissions');
+        throw new Error(`Failed to fetch submissions: ${response.status}`);
       }
       
-      const data = await response.json();
-      // The API now returns data already sorted by timestamp descending
-      setSubmissions(data);
-      setLoading(false);
+      let data = await response.json();
+      
+      if (Array.isArray(data) && data.length > 0) {
+        console.log('Raw submission data:', data);
+        
+        // Process the data to ensure all fields are properly populated
+        data = data.map(submission => {
+          // Debug each submission
+          console.log('Processing submission:', submission);
+          console.log('Problem data:', submission.problem);
+          
+          // Extract problem data more carefully
+          const problemName = submission.problemName || 
+                            (submission.problem && submission.problem.title) || 
+                            'Unknown Problem';
+                            
+          const difficulty = submission.difficulty || 
+                          (submission.problem && submission.problem.difficulty) || 
+                          'Unknown';
+          
+          return {
+            ...submission,
+            problemName,
+            difficulty,
+            language: submission.language || 'Unknown',
+            runtime: submission.runtime || 'N/A',
+            memory: submission.memory || 'N/A',
+            timestamp: submission.timestamp || submission.createdAt || new Date().toISOString()
+          };
+        });
+        
+        console.log('Processed submissions:', data);
+        setSubmissions(data);
+        
+        // After successfully fetching submissions, fetch stats
+        // This ensures we have submissions data as a fallback
+        fetchUserStats();
+        return; // Exit early since we have real data
+      } else {
+        throw new Error('No submission data returned from API');
+      }
     } catch (error) {
       console.error('Error fetching submissions:', error);
-      // Fallback to mock data if API fails
-      const mockSubmissions = [
-        { id: 1, problemId: '1', problemName: 'Two Sum', status: 'Accepted', language: 'Python', runtime: '32ms', memory: '14.2 MB', timestamp: '2025-07-10T15:30:00', difficulty: 'Easy' },
-        { id: 2, problemId: '3', problemName: 'Longest Substring', status: 'Wrong Answer', language: 'C++', runtime: '48ms', memory: '15.8 MB', timestamp: '2025-07-09T10:15:00', difficulty: 'Medium' },
-        { id: 3, problemId: '7', problemName: 'Palindrome Number', status: 'Accepted', language: 'Java', runtime: '56ms', memory: '42.3 MB', timestamp: '2025-07-08T18:45:00', difficulty: 'Easy' },
-        { id: 4, problemId: '4', problemName: 'Valid Anagram', status: 'Time Limit Exceeded', language: 'Python', runtime: 'N/A', memory: 'N/A', timestamp: '2025-07-07T09:20:00', difficulty: 'Easy' },
-        { id: 5, problemId: '2', problemName: 'Add Two Numbers', status: 'Accepted', language: 'C++', runtime: '28ms', memory: '12.9 MB', timestamp: '2025-07-06T14:10:00', difficulty: 'Medium' },
-        { id: 6, problemId: '1', problemName: 'Two Sum', status: 'Accepted', language: 'Java', runtime: '45ms', memory: '39.5 MB', timestamp: '2025-07-05T11:20:00', difficulty: 'Easy' },
-        { id: 7, problemId: '9', problemName: 'Merge Sorted Arrays', status: 'Accepted', language: 'Python', runtime: '36ms', memory: '14.8 MB', timestamp: '2025-07-04T16:40:00', difficulty: 'Hard' },
-      ];
-      setSubmissions(mockSubmissions);
+      
+      // Check if we already have submissions data before using mock data
+      if (submissions.length === 0) {
+        // Only use mock data if we don't have any real data
+        const mockSubmissions = [
+          { id: 1, problemId: '1', problemName: 'Two Sum', status: 'Accepted', language: 'Python', runtime: '32ms', memory: '14.2 MB', timestamp: '2025-07-10T15:30:00', difficulty: 'Easy' },
+          { id: 2, problemId: '3', problemName: 'Longest Substring', status: 'Wrong Answer', language: 'C++', runtime: '48ms', memory: '15.8 MB', timestamp: '2025-07-09T10:15:00', difficulty: 'Medium' },
+          { id: 3, problemId: '7', problemName: 'Palindrome Number', status: 'Accepted', language: 'Java', runtime: '56ms', memory: '42.3 MB', timestamp: '2025-07-08T18:45:00', difficulty: 'Easy' },
+          { id: 4, problemId: '4', problemName: 'Valid Anagram', status: 'Time Limit Exceeded', language: 'Python', runtime: 'N/A', memory: 'N/A', timestamp: '2025-07-07T09:20:00', difficulty: 'Easy' },
+          { id: 5, problemId: '2', problemName: 'Add Two Numbers', status: 'Accepted', language: 'C++', runtime: '28ms', memory: '12.9 MB', timestamp: '2025-07-06T14:10:00', difficulty: 'Medium' },
+          { id: 6, problemId: '1', problemName: 'Two Sum', status: 'Accepted', language: 'Java', runtime: '45ms', memory: '39.5 MB', timestamp: '2025-07-05T11:20:00', difficulty: 'Easy' },
+          { id: 7, problemId: '9', problemName: 'Merge Sorted Arrays', status: 'Accepted', language: 'Python', runtime: '36ms', memory: '14.8 MB', timestamp: '2025-07-04T16:40:00', difficulty: 'Hard' },
+        ];
+        setSubmissions(mockSubmissions);
+      }
+      calculateStatsFromSubmissions();
+    } finally {
       setLoading(false);
     }
   };
@@ -205,7 +290,6 @@ function Profile() {
             </div>
           </div>
         </div>
-
         {/* Tab navigation */}
         <div className="mb-6 border-b border-gray-700">
           <nav className="flex space-x-8">
@@ -229,7 +313,6 @@ function Profile() {
             </button>
           </nav>
         </div>
-
         {/* Tab content */}
         {activeTab === 'overview' && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -328,13 +411,13 @@ function Profile() {
                 <div className="grid grid-cols-3 gap-3">
                   <div className="p-2 bg-dark-bg rounded-lg flex flex-col items-center justify-center">
                     <div className="h-10 w-10 rounded-full bg-green-900 flex items-center justify-center mb-1">
-                      <span className="text-green-300 text-xs">5</span>
+                      <span className="text-green-300 text-xs">{stats.streak}</span>
                     </div>
                     <div className="text-xs text-center text-text-secondary">Streak</div>
                   </div>
                   <div className="p-2 bg-dark-bg rounded-lg flex flex-col items-center justify-center">
                     <div className="h-10 w-10 rounded-full bg-blue-900 flex items-center justify-center mb-1">
-                      <span className="text-blue-300 text-xs">10</span>
+                      <span className="text-blue-300 text-xs">{stats.solved}</span>
                     </div>
                     <div className="text-xs text-center text-text-secondary">Solved</div>
                   </div>
@@ -349,7 +432,6 @@ function Profile() {
             </div>
           </div>
         )}
-
         {activeTab === 'submissions' && (
           <div className="bg-dark-surface rounded-lg shadow-md p-6 overflow-x-auto">
             <h2 className="text-xl font-semibold mb-4 text-primary-pink">Recent Submissions</h2>
@@ -394,7 +476,6 @@ function Profile() {
             )}
           </div>
         )}
-
         {activeTab === 'badges' && (
           <div className="bg-dark-surface rounded-lg p-6 shadow-lg">
             <h2 className="text-xl font-semibold mb-6 text-primary-pink">Badges & Achievements</h2>
@@ -418,7 +499,7 @@ function Profile() {
                   </svg>
                 </div>
                 <h3 className="font-medium">Streak Master</h3>
-                <p className="text-xs text-text-secondary mt-1">5 day solving streak</p>
+                <p className="text-xs text-text-secondary mt-1">{stats.streak} day solving streak</p>
               </div>
               
               {/* Locked badges */}

@@ -85,10 +85,9 @@ exports.updateProblem = async (req, res) => {
 // @access  Private/Admin
 exports.deleteProblem = async (req, res) => {
   try {
-    const problem = await Problem.findById(req.params.id);
+    const problem = await Problem.findByIdAndDelete(req.params.id);
 
     if (problem) {
-      await problem.remove();
       res.json({ message: 'Problem removed' });
     } else {
       res.status(404).json({ message: 'Problem not found' });
