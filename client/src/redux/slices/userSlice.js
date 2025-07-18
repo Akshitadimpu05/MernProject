@@ -80,6 +80,28 @@ export const getCurrentUser = createAsyncThunk(
         return rejectWithValue(data.error || 'Failed to get user info');
       }
       
+      // Check premium status if user exists
+      if (data && data._id) {
+        try {
+          const premiumResponse = await fetch('/api/premium/status', {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+          
+          if (premiumResponse.ok) {
+            const premiumData = await premiumResponse.json();
+            // Add premium status to user data
+            data.isPremium = premiumData.isPremium;
+            data.premiumExpiresAt = premiumData.premiumExpiresAt;
+          }
+        } catch (premiumError) {
+          console.error('Error fetching premium status:', premiumError);
+          // Continue even if premium status check fails
+        }
+      }
+      
       return data;
     } catch (error) {
       return rejectWithValue(error.message);
@@ -94,6 +116,39 @@ export const logoutUser = createAsyncThunk(
     try {
       localStorage.removeItem('token');
       return { success: true };
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
+// Async thunk for updating premium status after payment verification
+export const updatePremiumStatus = createAsyncThunk(
+  'user/updatePremiumStatus',
+  async (paymentData, { rejectWithValue, getState }) => {
+    try {
+      const { token } = getState().user;
+      
+      if (!token) {
+        return rejectWithValue('No authentication token');
+      }
+      
+      const response = await fetch('/api/premium/verify-payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(paymentData),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        return rejectWithValue(data.message || 'Payment verification failed');
+      }
+      
+      return data.user;
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -176,8 +231,24 @@ const userSlice = createSlice({
       .addCase(logoutUser.fulfilled, (state) => {
         state.user = null;
         state.token = null; // Clear token from state
-        state.token = null;
         state.isAuthenticated = false;
+      })
+      
+      // Update premium status cases
+      .addCase(updatePremiumStatus.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updatePremiumStatus.fulfilled, (state, action) => {
+        state.loading = false;
+        if (state.user) {
+          state.user.isPremium = action.payload.isPremium;
+          state.user.premiumExpiresAt = action.payload.premiumExpiresAt;
+        }
+      })
+      .addCase(updatePremiumStatus.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       });
   },
 });

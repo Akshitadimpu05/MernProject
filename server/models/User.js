@@ -21,6 +21,18 @@ const UserSchema = new mongoose.Schema({
     enum: ['user', 'admin'],
     default: 'user'
   },
+  isPremium: {
+    type: Boolean,
+    default: false
+  },
+  premiumExpiresAt: {
+    type: Date,
+    default: null
+  },
+  razorpayCustomerId: {
+    type: String,
+    default: null
+  },
   date: {
     type: Date,
     default: Date.now

@@ -10,6 +10,7 @@ exports.getUserSubmissions = async (req, res) => {
     // Get submissions for the logged-in user
     const submissions = await Submission.find({ userId: req.user.id })
       .sort({ createdAt: -1 })
+      .populate('problemId', 'title difficulty')
       .lean();
 
     // Get all unique problem IDs from submissions
@@ -35,18 +36,21 @@ exports.getUserSubmissions = async (req, res) => {
 
     // Enhance submissions with problem details
     const enhancedSubmissions = submissions.map(submission => {
-      const problem = problemMap[submission.problemId];
+      // Check if problemId is already populated or use the map
+      const problem = (submission.problemId && typeof submission.problemId === 'object') 
+        ? submission.problemId 
+        : problemMap[submission.problemId];
       
       return {
         id: submission._id,
-        problemId: submission.problemId,
-        problemName: problem ? problem.title : 'Unknown Problem',
-        difficulty: problem ? problem.difficulty : 'Unknown',
+        problemId: typeof submission.problemId === 'object' ? submission.problemId._id : submission.problemId,
+        problemName: problem ? problem.title : submission.problemName || 'Unknown Problem',
+        difficulty: problem ? problem.difficulty : submission.difficulty || 'Unknown',
         status: mapStatusToDisplay(submission.status),
         language: submission.language || 'Unknown',
-        runtime: `${submission.executionTime || 0}ms`,
-        memory: `${(submission.memoryUsed || 0).toFixed(1)} MB`,
-        timestamp: submission.createdAt,
+        runtime: submission.executionTime ? `${submission.executionTime}ms` : 'N/A',
+        memory: submission.memoryUsed ? `${submission.memoryUsed.toFixed(1)} MB` : 'N/A',
+        timestamp: submission.createdAt || submission.timestamp,
         // Include the full problem object for reference if needed
         problem: problem || null
       };
@@ -78,7 +82,8 @@ exports.getUserStats = async (req, res) => {
       if (submission.problemId) {
         uniqueProblemsAttempted.add(submission.problemId);
         
-        if (submission.status === 'accepted') {
+        // Fix case sensitivity issue in status check
+        if (submission.status === 'accepted' || submission.status === 'Accepted') {
           uniqueProblemsSolved.add(submission.problemId);
         }
       }
@@ -138,12 +143,23 @@ exports.getUserStats = async (req, res) => {
 
 // Helper function to map internal status to display status
 function mapStatusToDisplay(status) {
-  switch (status) {
+  if (!status) return 'Unknown';
+  
+  // Convert to lowercase for case-insensitive comparison
+  const statusLower = status.toLowerCase();
+  
+  switch (statusLower) {
     case 'accepted': return 'Accepted';
     case 'wrong_answer': return 'Wrong Answer';
+    case 'wrong answer': return 'Wrong Answer';
     case 'error': return 'Runtime Error';
+    case 'runtime error': return 'Runtime Error';
+    case 'time_limit_exceeded': 
+    case 'time limit exceeded': return 'Time Limit Exceeded';
+    case 'compilation_error':
+    case 'compilation error': return 'Compilation Error';
     case 'pending': return 'Pending';
-    default: return status;
+    default: return status; // Keep original if no match
   }
 }
 

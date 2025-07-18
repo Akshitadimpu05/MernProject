@@ -23,6 +23,7 @@
     "mongoose": "^8.16.0",
     "nodemon": "^3.1.10",
     "openai": "^5.8.3",
+    "razorpay": "^2.9.6",
     "react-redux": "^9.2.0",
     "redux": "^5.0.1",
     "redux-thunk": "^3.1.0"
