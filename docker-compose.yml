@@ -7,6 +7,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3000:80"
+    depends_on:
+      - server
     networks:
       - mern-app
 
@@ -18,6 +20,13 @@ services:
       - ./server/.env
     ports:
       - "5000:5000"
+    volumes:
+      # Mount these directories for development
+      - ./server/temp:/app/temp
+      - ./server/outputs:/app/outputs
+      # Don't overwrite node_modules with host directory
+      - /app/node_modules
+    restart: unless-stopped
     networks:
       - mern-app
 

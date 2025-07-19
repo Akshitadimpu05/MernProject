@@ -66,12 +66,17 @@ function ProblemDetails() {
   useEffect(() => {
     const currentProblem = problems.find(p => p.id === id);
     if (currentProblem) {
+      // Check if this is a premium problem and user doesn't have premium access
+      if (currentProblem.isPremium && (!user || !user.isPremium)) {
+        navigate('/premium');
+        return;
+      }
       setProblem(currentProblem);
       updateCodeTemplate(id, language);
     } else {
       navigate('/problems');
     }
-  }, [id, language, navigate]);
+  }, [id, language, navigate, user]);
 
   const handleLogout = () => {
     auth.logout(() => navigate("/login"));

@@ -232,9 +232,9 @@ ${status.output}`);
     <div className="bg-dark-bg text-white p-4 min-h-screen">
       {/* Contest info */}
       <div className="mb-4 p-4 bg-dark-surface rounded-lg">
-        <h1 className="text-2xl font-bold text-primary-pink mb-2">{contest.title}</h1>
+        <h1 className="text-2xl font-bold text-[#FF4081] mb-2">{contest.title}</h1>
         <div className="flex justify-between items-center">
-          <p className="text-sm text-text-secondary">
+          <p className="text-sm text-[#B0B0B0]">
             {new Date(contest.startTime).toLocaleString()} - {new Date(contest.endTime).toLocaleString()}
           </p>
           <div className={`px-3 py-1 rounded-full text-sm ${isContestActive ? 'bg-green-600' : 'bg-red-600'}`}>
@@ -243,124 +243,129 @@ ${status.output}`);
         </div>
       </div>
 
-      {/* Problem statement */}
-      <div className="mb-6 p-6 bg-dark-surface rounded-lg">
-        <h2 className="text-xl font-bold mb-2">{problem.title}</h2>
-        <div className={`inline-block px-2 py-1 rounded text-xs mb-4 ${
-          problem.difficulty === 'Easy' ? 'bg-green-600' : 
-          problem.difficulty === 'Medium' ? 'bg-yellow-600' : 'bg-red-600'
-        }`}>
-          {problem.difficulty}
-        </div>
-        <div className="mb-4 whitespace-pre-wrap">{problem.description}</div>
-        
-        {problem.constraints && (
-          <div className="mb-4">
-            <h3 className="text-lg font-semibold text-primary-pink mb-2">Constraints</h3>
-            <div className="whitespace-pre-wrap">{problem.constraints}</div>
+      {/* Main content - split into two columns */}
+      <div className="flex flex-col lg:flex-row gap-4 h-[calc(100vh-180px)]">
+        {/* Left column: Problem statement */}
+        <div className="lg:w-1/2 bg-[#1E1E1E] p-6 rounded-lg overflow-y-auto">
+          <h2 className="text-xl font-bold mb-2 text-[#FF4081]">{problem.title}</h2>
+          <div className={`inline-block px-2 py-1 rounded text-xs mb-4 ${
+            problem.difficulty === 'Easy' ? 'bg-green-600' : 
+            problem.difficulty === 'Medium' ? 'bg-yellow-600' : 'bg-red-600'
+          }`}>
+            {problem.difficulty}
           </div>
-        )}
+          <div className="mb-4 whitespace-pre-wrap">{problem.description}</div>
+          
+          {problem.constraints && (
+            <div className="mb-4">
+              <h3 className="text-lg font-semibold text-[#FF4081] mb-2">Constraints</h3>
+              <div className="whitespace-pre-wrap">{problem.constraints}</div>
+            </div>
+          )}
+          
+          {problem.testCases && problem.testCases.length > 0 && (
+            <div>
+              <h3 className="text-lg font-semibold text-[#FF4081] mb-2">Examples</h3>
+              {problem.testCases.map((testCase, index) => (
+                <div key={index} className="mb-4 p-4 bg-[#121212] rounded-md">
+                  <div className="mb-2">
+                    <span className="font-semibold text-[#FF80AB]">Input:</span>
+                    <pre className="mt-1 p-2 bg-[#1A1A1A] rounded overflow-x-auto">{testCase.input}</pre>
+                  </div>
+                  <div>
+                    <span className="font-semibold text-[#FF80AB]">Output:</span>
+                    <pre className="mt-1 p-2 bg-[#1A1A1A] rounded overflow-x-auto">{testCase.output}</pre>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
         
-        {problem.testCases && problem.testCases.length > 0 && (
-          <div>
-            <h3 className="text-lg font-semibold text-primary-pink mb-2">Examples</h3>
-            {problem.testCases.map((testCase, index) => (
-              <div key={index} className="mb-4 p-4 bg-dark-bg rounded-md">
-                <div className="mb-2">
-                  <span className="font-semibold text-accent-pink">Input:</span>
-                  <pre className="mt-1 p-2 bg-gray-800 rounded overflow-x-auto">{testCase.input}</pre>
-                </div>
-                <div>
-                  <span className="font-semibold text-accent-pink">Output:</span>
-                  <pre className="mt-1 p-2 bg-gray-800 rounded overflow-x-auto">{testCase.output}</pre>
-                </div>
+        {/* Right column: Code editor and output */}
+        <div className="lg:w-1/2 flex flex-col gap-4">
+          {/* Code editor */}
+          <div className="bg-[#1E1E1E] p-4 rounded-lg flex flex-col h-3/5">
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <label htmlFor="language" className="mr-2">Language:</label>
+                <select
+                  id="language"
+                  value={language}
+                  onChange={handleLanguageChange}
+                  className="bg-[#121212] text-white border border-gray-700 rounded px-2 py-1"
+                >
+                  <option value="cpp">C++</option>
+                  <option value="java">Java</option>
+                  <option value="python">Python</option>
+                </select>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Code editor section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left column: Code editor */}
-        <div className="bg-dark-surface p-4 rounded-lg">
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <label htmlFor="language" className="mr-2">Language:</label>
-              <select
-                id="language"
-                value={language}
-                onChange={handleLanguageChange}
-                className="bg-dark-bg text-white border border-gray-700 rounded px-2 py-1"
-              >
-                <option value="cpp">C++</option>
-                <option value="java">Java</option>
-                <option value="python">Python</option>
-              </select>
+              <div>
+                <button
+                  onClick={handleRunCode}
+                  disabled={isRunning || !isContestActive}
+                  className={`mr-2 px-4 py-1 rounded ${
+                    isRunning || !isContestActive ? 'bg-gray-700 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
+                  }`}
+                >
+                  {isRunning ? 'Running...' : 'Run'}
+                </button>
+                <button
+                  onClick={handleSubmitSolution}
+                  disabled={isSubmitting || !isContestActive}
+                  className={`px-4 py-1 rounded ${
+                    isSubmitting || !isContestActive ? 'bg-gray-700 cursor-not-allowed' : 'bg-[#FF4081] hover:bg-[#F06292]'
+                  }`}
+                >
+                  {isSubmitting ? 'Submitting...' : 'Submit'}
+                </button>
+              </div>
             </div>
-            <div>
-              <button
-                onClick={handleRunCode}
-                disabled={isRunning || !isContestActive}
-                className={`mr-2 px-4 py-1 rounded ${
-                  isRunning || !isContestActive ? 'bg-gray-700 cursor-not-allowed' : 'bg-green-600 hover:bg-green-700'
-                }`}
-              >
-                {isRunning ? 'Running...' : 'Run'}
-              </button>
-              <button
-                onClick={handleSubmitSolution}
-                disabled={isSubmitting || !isContestActive}
-                className={`px-4 py-1 rounded ${
-                  isSubmitting || !isContestActive ? 'bg-gray-700 cursor-not-allowed' : 'bg-primary-pink hover:bg-secondary-pink'
-                }`}
-              >
-                {isSubmitting ? 'Submitting...' : 'Submit'}
-              </button>
+            
+            <div className="border border-gray-700 rounded flex-grow">
+              <AceEditor
+                mode={languageToMode[language]}
+                theme="monokai"
+                name="code-editor"
+                value={code}
+                onChange={setCode}
+                fontSize={14}
+                width="100%"
+                height="100%"
+                showPrintMargin={false}
+                showGutter={true}
+                highlightActiveLine={true}
+                setOptions={{
+                  enableBasicAutocompletion: true,
+                  enableLiveAutocompletion: true,
+                  enableSnippets: true,
+                  showLineNumbers: true,
+                  tabSize: 2,
+                }}
+              />
             </div>
           </div>
           
-          <div className="border border-gray-700 rounded">
-            <AceEditor
-              mode={languageToMode[language]}
-              theme="monokai"
-              name="code-editor"
-              value={code}
-              onChange={setCode}
-              fontSize={14}
-              width="100%"
-              height="400px"
-              showPrintMargin={false}
-              showGutter={true}
-              highlightActiveLine={true}
-              setOptions={{
-                enableBasicAutocompletion: true,
-                enableLiveAutocompletion: true,
-                enableSnippets: true,
-                showLineNumbers: true,
-                tabSize: 2,
-              }}
-            />
-          </div>
-        </div>
-        
-        {/* Right column: Custom input and output */}
-        <div className="bg-dark-surface p-4 rounded-lg">
-          <div className="mb-4">
-            <h3 className="text-lg font-semibold mb-2">Custom Input</h3>
-            <textarea
-              value={customInput}
-              onChange={(e) => setCustomInput(e.target.value)}
-              className="w-full h-32 p-2 bg-dark-bg text-white border border-gray-700 rounded font-mono"
-              placeholder="Enter your custom input here..."
-            />
-          </div>
-          
-          <div>
-            <h3 className="text-lg font-semibold mb-2">Output</h3>
-            <pre className="w-full h-64 p-2 bg-dark-bg text-white border border-gray-700 rounded font-mono overflow-auto">
-              {output || 'No output yet. Run your code to see results.'}
-            </pre>
+          {/* Custom input and output */}
+          <div className="bg-[#1E1E1E] p-4 rounded-lg flex flex-col h-2/5">
+            <div className="flex flex-col h-full">
+              <div className="flex-1 mb-2">
+                <h3 className="text-lg font-semibold mb-2 text-[#FF4081]">Custom Input</h3>
+                <textarea
+                  value={customInput}
+                  onChange={(e) => setCustomInput(e.target.value)}
+                  className="w-full h-[calc(100%-30px)] p-2 bg-[#121212] text-white border border-gray-700 rounded font-mono"
+                  placeholder="Enter your custom input here..."
+                />
+              </div>
+              
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold mb-2 text-[#FF4081]">Output</h3>
+                <pre className="w-full h-[calc(100%-30px)] p-2 bg-[#121212] text-white border border-gray-700 rounded font-mono overflow-auto">
+                  {output || 'No output yet. Run your code to see results.'}
+                </pre>
+              </div>
+            </div>
           </div>
         </div>
       </div>

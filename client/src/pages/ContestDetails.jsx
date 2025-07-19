@@ -1,25 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import AceEditor from 'react-ace';
-
-// Import ACE editor modes and themes
-import 'ace-builds/src-noconflict/mode-c_cpp';
-import 'ace-builds/src-noconflict/mode-java';
-import 'ace-builds/src-noconflict/mode-python';
-import 'ace-builds/src-noconflict/theme-monokai';
 
 const ContestDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [contest, setContest] = useState(null);
   const [selectedProblem, setSelectedProblem] = useState(null);
-  const [code, setCode] = useState('');
-  const [language, setLanguage] = useState('cpp');
-  const [output, setOutput] = useState('');
   const [loading, setLoading] = useState(true);
-  const [isRunning, setIsRunning] = useState(false);
-
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [contestStatus, setContestStatus] = useState('upcoming'); // 'upcoming', 'active', 'ended'
 
@@ -66,7 +54,6 @@ const ContestDetails = () => {
         setLoading(false);
       }
     };
-
     fetchContest();
   }, [id]);
   
@@ -92,88 +79,6 @@ const ContestDetails = () => {
       } else {
         alert(error.response?.data?.message || 'Failed to enroll in the contest.');
       }
-    }
-  };
-
-  const handleRunCode = async () => {
-    if (!selectedProblem) return;
-    setIsRunning(true);
-    setOutput('');
-    
-    // Check if code is empty
-    if (!code.trim()) {
-      setOutput('Please write some code before running.');
-      setIsRunning(false);
-      return;
-    }
-    
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        setOutput('Authentication error: Not logged in. Please log in again.');
-        setIsRunning(false);
-        return;
-      }
-      
-      // Check if the code contains a main function for compiled languages
-      if (language === 'cpp' && !code.includes('main(') && !code.includes('int main')) {
-        setOutput('Error: Your C++ code must include a main() function.');
-        setIsRunning(false);
-        return;
-      }
-      
-      if (language === 'java' && !code.includes('public static void main')) {
-        setOutput('Error: Your Java code must include a public static void main(String[] args) method.');
-        setIsRunning(false);
-        return;
-      }
-      
-      // Use the contest-specific endpoint for running code
-      const { data } = await axios.post(`/api/contests/${id}/problems/${selectedProblem._id}/run`, {
-        code,
-        language,
-      }, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-      
-      setOutput(data.output || 'Code executed successfully but returned no output.');
-    } catch (error) {
-      console.error('Run code error:', error);
-      if (error.response?.status === 401) {
-        setOutput('Authentication error: Your session has expired. Please log in again.');
-      } else {
-        setOutput(error.response?.data?.error || 'An error occurred while executing your code. Make sure your code includes all necessary functions and a main method.');
-      }
-    } finally {
-      setIsRunning(false);
-    }
-  };
-
-  const handleSubmitCode = async () => {
-    if (!selectedProblem) return;
-    setIsRunning(true);
-    setOutput('');
-    try {
-      // Use the contest-specific endpoint for submitting code
-      const { data } = await axios.post(`/api/contests/${id}/problems/${selectedProblem._id}/submit`, {
-        code,
-        language,
-      }, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      // Format submission results for display
-      const results = data.results.map(res => 
-        `Test Case ${res.testCaseId}: ${res.passed ? 'Passed' : 'Failed'}\nInput: ${res.input}\nOutput: ${res.output}\nExpected: ${res.expected}`
-      ).join('\n\n');
-      setOutput(`Submission Status: ${data.status}\n\n${results}`);
-    } catch (error) {
-      setOutput(error.response?.data?.error || 'An error occurred during submission.');
-    } finally {
-      setIsRunning(false);
     }
   };
 
@@ -241,6 +146,19 @@ const ContestDetails = () => {
         )}
       </div>
 
+      {/* Contest Rules */}
+      <div className="p-4 bg-gray-800 mx-4 my-3 rounded">
+        <h3 className="text-xl font-semibold mb-2">Contest Rules</h3>
+        <ul className="list-disc pl-5 space-y-1">
+          <li>All submissions are checked for plagiarism. Copying code from other participants will result in disqualification.</li>
+          <li>Each problem must be solved within the given time and memory constraints.</li>
+          <li>You may submit multiple solutions to the same problem, but only your highest-scoring submission will be counted.</li>
+          <li>Internet access is permitted for reference purposes only, not for seeking direct help with problems.</li>
+          <li>Any form of communication with other participants during the contest is prohibited.</li>
+          <li>The judge's decision is final in all matters related to scoring and ranking.</li>
+        </ul>
+      </div>
+
       {/* Main Content Area */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left Panel: Problems List */}
@@ -261,7 +179,7 @@ const ContestDetails = () => {
           )}
         </div>
 
-        {/* Right Panel: Problem Details and Editor */}
+        {/* Right Panel: Problem Details */}
         <div className="w-3/4 flex flex-col p-4">
           {selectedProblem ? (
             <>
@@ -270,27 +188,6 @@ const ContestDetails = () => {
                 <p className="text-gray-400">Difficulty: {selectedProblem.difficulty}</p>
                 <p className="my-4 whitespace-pre-wrap">{selectedProblem.statement}</p>
                 
-                <div className="flex items-center mb-2">
-                  <label htmlFor="language" className="mr-2">Language:</label>
-                  <select id="language" value={language} onChange={e => setLanguage(e.target.value)} className="bg-gray-700 p-2 rounded">
-                    <option value="cpp">C++</option>
-                    <option value="java">Java</option>
-                    <option value="python">Python</option>
-                  </select>
-                </div>
-
-                <AceEditor
-                  mode={language === 'cpp' ? 'c_cpp' : language}
-                  theme="monokai"
-                  onChange={setCode}
-                  name="code-editor"
-                  editorProps={{ $blockScrolling: true }}
-                  value={code}
-                  width="100%"
-                  height="400px"
-                  fontSize={16}
-                />
-
                 <div className="mt-4 flex space-x-4">
                   <button 
                     onClick={() => navigate(`/contests/${id}/problems/${selectedProblem._id}/solve`)} 
@@ -300,34 +197,13 @@ const ContestDetails = () => {
                   >
                     Solve Problem
                   </button>
-                  <button 
-                    onClick={handleRunCode} 
-                    disabled={isRunning || (contestStatus !== 'active')} 
-                    className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded disabled:bg-gray-500"
-                    title={contestStatus !== 'active' ? 'Contest is not active' : ''}
-                  >
-                    {isRunning ? 'Running...' : 'Run Code'}
-                  </button>
-                  <button 
-                    onClick={handleSubmitCode} 
-                    disabled={isRunning || !canParticipate} 
-                    className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded disabled:bg-gray-500"
-                    title={!canParticipate ? 'You must be enrolled in an active contest to submit' : ''}
-                  >
-                    {isRunning ? 'Submitting...' : 'Submit'}
-                  </button>
                 </div>
                 
                 {!canParticipate && contestStatus === 'active' && (
                   <div className="mt-2 text-yellow-500 text-sm">
-                    You must be enrolled to submit solutions in this contest.
+                    You must be enrolled to solve problems in this contest.
                   </div>
                 )}
-
-                <div className="mt-4 flex-grow bg-gray-900 p-4 rounded overflow-y-auto">
-                  <h3 className="text-lg font-semibold mb-2">Output</h3>
-                  <pre className="whitespace-pre-wrap">{output}</pre>
-                </div>
               </div>
             </>
           ) : (

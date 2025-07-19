@@ -13,6 +13,7 @@ import Problems from './pages/Problems';
 import ProblemDetails from './pages/ProblemDetails';
 import Profile from './components/Profile';
 import Premium from './components/Premium';
+import Resources from './pages/Resources';
 import Navbar from './components/Navbar';
 import AdminDashboard from './pages/AdminDashboard';
 import CreateContest from './pages/CreateContest';
@@ -104,6 +105,7 @@ function App() {
         <Route path="/problems/:id" element={<ProtectedRoute><ProblemDetails /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
         <Route path="/premium" element={<ProtectedRoute><Premium /></ProtectedRoute>} />
+        <Route path="/resources" element={<ProtectedRoute><Resources /></ProtectedRoute>} />
 
         {/* Admin routes */}
         <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
