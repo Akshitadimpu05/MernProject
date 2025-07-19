@@ -3,6 +3,7 @@ services:
     name: cavelix-server
     env: node
     plan: free
+    rootDir: server
     buildCommand: npm install
     startCommand: npm start
     envVars:
