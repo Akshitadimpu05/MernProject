@@ -1,7 +1,8 @@
 services:
   - type: web
-    name: algowebapp-server
+    name: cavelix-server
     env: node
+    plan: free
     buildCommand: npm install
     startCommand: npm start
     envVars:
@@ -18,5 +19,7 @@ services:
       - key: RAZORPAY_KEY_SECRET
         sync: false
       - key: CLIENT_URL
-        value: https://algowebapp.vercel.app
+        value: https://cavelix.vercel.app
+      - key: COMPILER_URL
+        value: http://your-ec2-public-dns:8080/api
     healthCheckPath: /api/health
