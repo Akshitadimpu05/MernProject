@@ -8,7 +8,7 @@
     "dev": "nodemon server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "seed": "node seeder.js",
-    "postinstall": "mkdir -p temp outputs && chmod 777 temp outputs"
+    "postinstall": "bash ./render-build.sh"
   },
   "keywords": [],
   "author": "",

@@ -42,47 +42,24 @@ async function executeCpp(filePath) {
   return new Promise((resolve, reject) => {
     console.log(`Executing command: g++ ${filePath} -o ${outPath}`);
     
-    // First check if g++ is installed
-    exec('which g++', (whichError, whichStdout) => {
-      if (whichError || !whichStdout) {
-        console.error('g++ compiler not found in PATH');
-        // Try to locate it in common locations
-        exec('find /usr -name g++ -type f 2>/dev/null', (findError, findStdout) => {
-          console.log('Compiler search results:', findStdout || 'Not found');
-          reject({ error: new Error('g++ compiler not found'), stderr: 'Compiler not installed or not in PATH' });
-        });
+    const command = process.platform === "win32"
+      ? `g++ ${filePath} -o ${outPath} && ${outPath}`
+      : `g++ ${filePath} -o ${outPath} && ${outPath}`;
+    
+    exec(command, { timeout: 10000 }, (error, stdout, stderr) => {
+      console.log('Execution completed');
+      if (error) {
+        console.error('Execution error:', error);
+        console.error('Stderr:', stderr);
+        reject({ error, stderr });
         return;
       }
-      
-      console.log('g++ found at:', whichStdout.trim());
-      
-      // Check if directories exist and have proper permissions
-      const tempDir = path.dirname(filePath);
-      const outputDir = path.dirname(outPath);
-      
-      console.log(`Checking directories - Temp: ${tempDir}, Output: ${outputDir}`);
-      console.log(`Temp exists: ${fs.existsSync(tempDir)}, Output exists: ${fs.existsSync(outputDir)}`);
-      
-      const command = process.platform === "win32"
-        ? `g++ ${filePath} -o ${outPath} && ${outPath}`
-        : `g++ ${filePath} -o ${outPath} && ${outPath}`;
-      
-      exec(command, { timeout: 10000 }, (error, stdout, stderr) => {
-        console.log('Execution completed');
-        if (error) {
-          console.error('Execution error:', error);
-          console.error('Stderr:', stderr);
-          reject({ error, stderr });
-          return;
-        }
-        if (stderr && stderr.trim() !== '') {
-          console.error('Stderr:', stderr);
-          reject(stderr);
-          return;
-        }
-        console.log('Stdout:', stdout);
-        resolve(stdout);
-      });
+      if (stderr && stderr.trim() !== '') {
+        console.error('Stderr:', stderr);
+        reject(stderr);
+        return;
+      }
+      console.log('Stdout:', stdout);
       resolve(stdout);
     });
   });
@@ -1276,9 +1253,6 @@ function formatCustomInput(input, problemId) {
   return formattedInput;
 }
 
-// Import online compiler service
-const { executeCodeOnline } = require('../services/onlineCompilerService');
-
 // ================= API ENDPOINTS =================
 // Run code endpoint
 router.post('/run', protect, async (req, res) => {
@@ -1305,10 +1279,21 @@ router.post('/run', protect, async (req, res) => {
     // Generate test code based on problem ID and language
     const testCode = getTestCode(code, input, problemId, language);
     
+    const filePath = generateFile(language, testCode);
+    
     try {
-      console.log(`Using online compiler service for ${language} code`);
-      // Use online compiler service instead of local execution
-      const output = await executeCodeOnline(testCode, language);
+      let output;
+      if (language === 'cpp') {
+        output = await executeCpp(filePath);
+      } else if (language === 'java') {
+        output = await executeJava(filePath);
+      } else if (language === 'python') {
+        output = await executePython(filePath);
+      } else {
+        return res.status(400).json({ error: 'Unsupported language' });
+      }
+      
+      await cleanupFiles(filePath, language);
       res.json({ output });
     } catch (error) {
       console.error('Execution error:', error);
@@ -1374,82 +1359,130 @@ router.post('/submit', protect, async (req, res) => {
       return res.status(404).json({ error: 'No test cases found for this problem' });
     }
     
-    // Track results for all test cases
-    const results = [];
-    let allPassed = true;
-    let totalExecutionTime = 0;
-    
-    // Process each test case
-    for (let i = 0; i < testCases.length; i++) {
-      const testCase = testCases[i];
-      const input = testCase?.input || '[]';
-      const expectedOutput = testCase?.output || '';
-      
-      // Generate test code based on problem ID and language
-      const testCode = getTestCode(code, input, problemId, language);
-      
-      try {
-        const startTime = Date.now();
-        
-        // Use online compiler service
-        console.log(`Using online compiler service for test case ${i + 1}`);
-        const output = await executeCodeOnline(testCode, language);
-        
-        const endTime = Date.now();
-        const executionTime = endTime - startTime;
-        totalExecutionTime += executionTime;
-        
-        // Compare output with expected output
-        const normalizedOutput = output.trim().replace(/\r\n/g, '\n');
-        const normalizedExpected = expectedOutput.trim().replace(/\r\n/g, '\n');
-        
-        const passed = normalizedOutput === normalizedExpected;
-        if (!passed) allPassed = false;
-        
-        results.push({
-          testCase: i + 1,
-          input,
-          expectedOutput: normalizedExpected,
-          actualOutput: normalizedOutput,
-          passed,
-          executionTime
-        });
-      } catch (error) {
-        console.error(`Test case ${i + 1} execution error:`, error);
-        allPassed = false;
-        results.push({
-          testCase: i + 1,
-          input,
-          expectedOutput,
-          actualOutput: error.message || 'Execution failed',
-          passed: false,
-          executionTime: 0
-        });
-      }
-    }
-    
-    // Calculate average execution time
-    const avgExecutionTime = results.length > 0 ? totalExecutionTime / results.length : 0;
-    
-    // Create submission record
+    // Create submission
+    console.log('Creating submission record');
     const submission = new Submission({
       userId,
       problemId,
       code,
       language,
-      status: allPassed ? 'Accepted' : 'Failed',
-      executionTime: avgExecutionTime,
-      testResults: results
+      status: 'pending'
     });
     
+    // Save submission first
+    console.log('Saving initial submission');
     await submission.save();
     
-    res.json({
-      submissionId: submission._id,
-      status: allPassed ? 'Accepted' : 'Failed',
-      results,
-      executionTime: avgExecutionTime
-    });
+    let allPassed = true;
+    const testResults = [];
+    
+    // Execute code for each test case
+    console.log(`Running ${testCases.length} test cases`);
+    for (const testCase of testCases) {
+      console.log(`Processing test case ${testCase.id}`);
+      const testCode = getTestCode(code, testCase.input, problemId, language);
+      const filePath = generateFile(language, testCode);
+      
+      try {
+        console.log(`Executing test case ${testCase.id}`);
+        let output;
+        
+        if (language === 'cpp') {
+          output = await executeCpp(filePath);
+        } else if (language === 'java') {
+          output = await executeJava(filePath);
+        } else if (language === 'python') {
+          output = await executePython(filePath);
+        } else {
+          // Default to C++
+          output = await executeCpp(filePath);
+        }
+        
+        console.log(`Output: "${output.trim()}", Expected: "${testCase.expected.trim()}"`)
+        const passed = output.trim() === testCase.expected.trim();
+        
+        if (!passed) {
+          console.log(`Test case ${testCase.id} failed`);
+          allPassed = false;
+        } else {
+          console.log(`Test case ${testCase.id} passed`);
+        }
+        
+        testResults.push({
+          id: testCase.id,
+          input: testCase.input,
+          expected: testCase.expected,
+          output: output.trim(),
+          passed
+        });
+        
+        cleanupFiles(filePath, language);
+      } catch (error) {
+        console.error(`Error executing test case ${testCase.id}:`, error);
+        allPassed = false;
+        testResults.push({
+          id: testCase.id,
+          input: testCase.input,
+          expected: testCase.expected,
+          output: error.stderr || "Execution error",
+          passed: false
+        });
+        
+        cleanupFiles(filePath, language);
+      }
+    }
+    
+    // Update submission with results
+    console.log('Updating submission with test results');
+    submission.status = allPassed ? 'accepted' : 'wrong_answer';
+    submission.testCases = testResults;
+    submission.output = testResults.map(r =>
+      `Test Case ${r.id}: ${r.passed ? 'PASSED' : 'FAILED'}\nInput: ${r.input}\nExpected: ${r.expected}\nOutput: ${r.output}`
+    ).join('\n\n');
+    
+    await submission.save();
+    console.log('Submission updated');
+    
+    // Check if AI analysis is requested
+    if (req.query.analyze === 'true') {
+      try {
+        console.log('AI analysis requested, generating code analysis');
+        
+        // Generate AI analysis
+        const analysis = await analyzeCode(code, language, problemId, allPassed);
+        
+        // Send response with analysis
+        res.json({ 
+          success: true, 
+          submissionId: submission._id,
+          status: submission.status,
+          results: testResults,
+          output: submission.output,
+          analysis: analysis // Include AI analysis in response
+        });
+      } catch (analysisError) {
+        console.error('Error generating AI analysis:', analysisError);
+        
+        // Send response without analysis due to error
+        res.json({ 
+          success: true, 
+          submissionId: submission._id,
+          status: submission.status,
+          results: testResults,
+          output: submission.output,
+          analysisError: 'Failed to generate AI analysis'
+        });
+      }
+    } else {
+      // Standard response without analysis
+      res.json({ 
+        success: true, 
+        submissionId: submission._id,
+        status: submission.status,
+        results: testResults,
+        output: submission.output
+      });
+    }
   } catch (error) {
     console.error('Submission error:', error);
     res.status(500).json({ error: error.message });
@@ -1481,10 +1514,21 @@ router.post('/custom-run', protect, async (req, res) => {
     // Generate test code
     const testCode = getTestCode(code, formattedInput, problemId, language);
     
+    const filePath = generateFile(language, testCode);
+    
     try {
-      console.log(`Using online compiler service for custom input`);
-      // Use online compiler service instead of local execution
-      const output = await executeCodeOnline(testCode, language);
+      let output;
+      if (language === 'cpp') {
+        output = await executeCpp(filePath);
+      } else if (language === 'java') {
+        output = await executeJava(filePath);
+      } else if (language === 'python') {
+        output = await executePython(filePath);
+      } else {
+        return res.status(400).json({ error: 'Unsupported language' });
+      }
+      
+      await cleanupFiles(filePath, language);
       res.json({ output });
     } catch (error) {
       console.error('Execution error:', error);
