@@ -166,29 +166,35 @@ function Profile() {
       }
       
       let data = await response.json();
+      console.log('Raw submission data:', data);
       
-      if (Array.isArray(data) && data.length > 0) {
-        console.log('Raw submission data:', data);
-        
+      if (Array.isArray(data)) {
         // Process the data to ensure all fields are properly populated
         data = data.map(submission => {
-          // Debug each submission
-          console.log('Processing submission:', submission);
-          console.log('Problem data:', submission.problem);
-          
           // Extract problem data more carefully
-          const problemName = submission.problemName || 
-                            (submission.problem && submission.problem.title) || 
-                            'Unknown Problem';
-                            
-          const difficulty = submission.difficulty || 
-                          (submission.problem && submission.problem.difficulty) || 
-                          'Unknown';
+          let problemName = 'Unknown Problem';
+          let difficulty = 'Unknown';
+          
+          // Try to get problem name from different possible sources
+          if (submission.problemName) {
+            problemName = submission.problemName;
+          } else if (submission.problem && submission.problem.title) {
+            problemName = submission.problem.title;
+          }
+          
+          // Try to get difficulty from different possible sources
+          if (submission.difficulty) {
+            difficulty = submission.difficulty;
+          } else if (submission.problem && submission.problem.difficulty) {
+            difficulty = submission.problem.difficulty;
+          }
           
           return {
-            ...submission,
+            id: submission.id || submission._id,
+            problemId: submission.problemId || (submission.problem && submission.problem._id),
             problemName,
             difficulty,
+            status: submission.status || 'Unknown',
             language: submission.language || 'Unknown',
             runtime: submission.runtime || 'N/A',
             memory: submission.memory || 'N/A',
@@ -200,11 +206,10 @@ function Profile() {
         setSubmissions(data);
         
         // After successfully fetching submissions, fetch stats
-        // This ensures we have submissions data as a fallback
         fetchUserStats();
-        return; // Exit early since we have real data
       } else {
-        throw new Error('No submission data returned from API');
+        console.error('Invalid submission data format from API');
+        fetchUserStats(); // Still try to fetch stats even if submissions failed
       }
     } catch (error) {
       console.error('Error fetching submissions:', error);
