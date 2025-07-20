@@ -11,7 +11,7 @@ const generateToken = (userId) => {
 // Register new user
 exports.register = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { username, email, password } = req.body;
     
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -21,7 +21,7 @@ exports.register = async (req, res) => {
     
     // Create new user
     const user = new User({
-      username: name, // Using name as username since the model requires username
+      username, // Use username directly from the request
       email,
       password,
       role: email.trim().toLowerCase() === 'admin@example.com' ? 'admin' : 'user',
@@ -38,6 +38,7 @@ exports.register = async (req, res) => {
       user: {
         id: user._id,
         name: user.username, // Return username as name for frontend compatibility
+        username: user.username, // Also include username explicitly
         email: user.email,
         role: user.role,
       },
