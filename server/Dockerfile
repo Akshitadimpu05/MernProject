@@ -16,8 +16,8 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Install runtime dependencies only
-RUN apk add --no-cache python3 openjdk11
+# Install runtime dependencies including compilers
+RUN apk add --no-cache build-base gcc g++ python3 openjdk11
 
 # Create directories for temporary files and outputs
 RUN mkdir -p /app/temp /app/outputs && chmod 777 /app/temp /app/outputs

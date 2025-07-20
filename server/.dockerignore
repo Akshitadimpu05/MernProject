@@ -8,3 +8,7 @@ yarn-error.log*
 
 # Environment variables
 .env
+
+# Output directories
+output/
+temp/
