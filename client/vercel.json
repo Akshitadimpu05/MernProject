@@ -1,0 +1,9 @@
+{
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "https://cavelix-server.onrender.com/api/:path*" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "framework": "vite",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist"
+}

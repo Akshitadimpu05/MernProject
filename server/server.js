@@ -9,19 +9,31 @@ require('dotenv').config();
 // Import routes
 const authRoutes = require('./routes/authRoutes');
 const codeRoutes = require('./routes/codeRoutes');
+const adminRoutes = require('./routes/adminRoutes');
+const contestRoutes = require('./routes/contestRoutes');
+const problemRoutes = require('./routes/problemRoutes');
+const submissionRoutes = require('./routes/submissionRoutes');
+const contestSubmissionRoutes = require('./routes/contestSubmissionRoutes');
+const premiumRoutes = require('./routes/premiumRoutes');
+const healthRoutes = require('./routes/healthRoutes');
 
 // MongoDB connection - using your existing .env config
 const MONGODB_URI = process.env.MONGO_URI;
-mongoose.connect(MONGODB_URI)
-  .then(() => console.log('MongoDB connected'))
-  .catch(err => console.error('MongoDB connection error:', err));
 
-// Initialize Express app
 const app = express();
 
 // Middleware
-app.use(cors());
-app.use(express.json());
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production' 
+    ? [process.env.CLIENT_URL || 'https://algowebapp.vercel.app'] 
+    : 'http://localhost:3000',
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Create temp and output directories
 const tempDir = path.join(__dirname, 'temp');
@@ -35,39 +47,18 @@ if (!fs.existsSync(outputDir)) {
   fs.mkdirSync(outputDir, { recursive: true });
 }
 
-// Authentication middleware
-app.use((req, res, next) => {
-  // Skip auth for login and register routes
-  if (req.path === '/api/auth/login' || 
-      req.path === '/api/auth/register' || 
-      req.path === '/health') {
-    return next();
-  }
-  
-  // Get token from header
-  const token = req.headers.authorization?.split(' ')[1];
-  
-  if (!token) {
-    return res.status(401).json({ error: 'No token, authorization denied' });
-  }
-  
-  try {
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-    
-    // Add user from payload to request
-    req.user = { _id: decoded.user.id };
-    next();
-  } catch (err) {
-    res.status(401).json({ error: 'Token is not valid' });
-  }
-});
-
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/code', codeRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/contests', contestRoutes);
+app.use('/api/problems', problemRoutes);
+app.use('/api/submissions', submissionRoutes);
+app.use('/api', contestSubmissionRoutes);
+app.use('/api/premium', premiumRoutes);
+app.use('/api/health', healthRoutes);
 
-// Health check endpoint
+// Basic health check endpoint for root path
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok' });
 });
@@ -78,10 +69,31 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: 'Something went wrong!', error: err.message });
 });
 
-// Start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+
+// Add production security headers
+if (process.env.NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('X-Frame-Options', 'DENY');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    next();
+  });
+}
+
+mongoose.connect(MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+  .then(() => {
+    console.log('MongoDB connected');
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  })
+  .catch(err => {
+    console.error('MongoDB connection error:', err);
+    process.exit(1);
+  });
 
 module.exports = app;

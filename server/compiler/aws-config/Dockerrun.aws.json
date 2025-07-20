@@ -1,0 +1,24 @@
+{
+  "AWSEBDockerrunVersion": "1",
+  "Image": {
+    "Name": "algowebapp-compiler:latest",
+    "Update": "true"
+  },
+  "Ports": [
+    {
+      "ContainerPort": 8080,
+      "HostPort": 8080
+    }
+  ],
+  "Volumes": [
+    {
+      "HostDirectory": "/var/app/temp",
+      "ContainerDirectory": "/app/temp"
+    },
+    {
+      "HostDirectory": "/var/app/outputs",
+      "ContainerDirectory": "/app/outputs"
+    }
+  ],
+  "Logging": "/var/log/algowebapp-compiler"
+}

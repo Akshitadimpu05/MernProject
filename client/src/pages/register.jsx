@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { registerUser, clearError } from '../redux/slices/userSlice';
+// Import video using Vite's asset handling
+import canyonVideo from '../assets/canyon.mov'
 
 function Register() {
   const [formData, setFormData] = useState({
@@ -10,145 +12,109 @@ function Register() {
     password: '',
     confirmPassword: ''
   });
-  
+
   const { username, email, password, confirmPassword } = formData;
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  
+
   const { loading, error, isAuthenticated } = useSelector(state => state.user);
-  
+
   useEffect(() => {
-    // If user is already authenticated, redirect to problems page
     if (isAuthenticated) {
       navigate('/problems');
     }
-    
-    // Clear any previous errors when component mounts
     dispatch(clearError());
   }, [isAuthenticated, navigate, dispatch]);
-  
+
   const handleChange = (e) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
   };
-  
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
     if (password !== confirmPassword) {
       alert('Passwords do not match');
       return;
     }
-    
-    // Your User model requires username, email, and password
-    // Make sure these fields are sent to the registerUser action
+
     try {
-      await dispatch(registerUser({ 
-        username, 
-        email, 
-        password 
-      })).unwrap();
-      
+      await dispatch(registerUser({ username, email, password })).unwrap();
       navigate('/problems');
     } catch (err) {
-      // Error is handled by the reducer
       console.error('Registration failed:', err);
     }
   };
-  
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Create your account
-          </h2>
-        </div>
-        
-        {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
-            <span className="block sm:inline">{error}</span>
-          </div>
-        )}
-        
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="username" className="sr-only">Username</label>
-              <input
-                id="username"
-                name="username"
-                type="text"
-                autoComplete="username"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Username"
-                value={username}
-                onChange={handleChange}
-              />
+    <div className="relative w-full min-h-screen bg-[#121212]">
+      <video src={canyonVideo} className="absolute inset-0 w-full h-full object-cover" autoPlay loop muted playsInline>
+        Your browser does not support the video tag.
+      </video>
+      <div className="absolute inset-0 bg-black bg-opacity-50"></div>
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="bg-black bg-opacity-60 p-10 rounded-xl w-full max-w-md text-white">
+          <h2 className="text-3xl font-bold text-center mb-6">Create your account</h2>
+
+          {error && (
+            <div className="bg-red-500 text-white px-4 py-2 rounded mb-4 text-center">
+              {error}
             </div>
-            <div>
-              <label htmlFor="email-address" className="sr-only">Email address</label>
-              <input
-                id="email-address"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Email address"
-                value={email}
-                onChange={handleChange}
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">Password</label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="new-password"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Password"
-                value={password}
-                onChange={handleChange}
-              />
-            </div>
-            <div>
-              <label htmlFor="confirm-password" className="sr-only">Confirm Password</label>
-              <input
-                id="confirm-password"
-                name="confirmPassword"
-                type="password"
-                autoComplete="new-password"
-                required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Confirm Password"
-                value={confirmPassword}
-                onChange={handleChange}
-              />
-            </div>
-          </div>
-          
-          <div>
+          )}
+
+          <form className="space-y-4" onSubmit={handleSubmit}>
+            <input
+              type="text"
+              name="username"
+              value={username}
+              onChange={handleChange}
+              required
+              placeholder="Username"
+              className="w-full px-4 py-2 rounded bg-[#1E1E1E] text-white focus:outline-none"
+            />
+            <input
+              type="email"
+              name="email"
+              value={email}
+              onChange={handleChange}
+              required
+              placeholder="Email address"
+              className="w-full px-4 py-2 rounded bg-[#1E1E1E] text-white focus:outline-none"
+            />
+            <input
+              type="password"
+              name="password"
+              value={password}
+              onChange={handleChange}
+              required
+              placeholder="Password"
+              className="w-full px-4 py-2 rounded bg-[#1E1E1E] text-white focus:outline-none"
+            />
+            <input
+              type="password"
+              name="confirmPassword"
+              value={confirmPassword}
+              onChange={handleChange}
+              required
+              placeholder="Confirm Password"
+              className="w-full px-4 py-2 rounded bg-[#1E1E1E] text-white focus:outline-none"
+            />
             <button
               type="submit"
               disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="w-full py-2 bg-[#1E1E1E] text-white font-semibold rounded hover:bg-gray-900"
             >
               {loading ? 'Creating Account...' : 'Create Account'}
             </button>
-          </div>
-          
-          <div className="text-sm text-center">
-            <Link to="/login" className="font-medium text-indigo-600 hover:text-indigo-500">
-              Already have an account? Sign in
-            </Link>
-          </div>
-        </form>
+            <div className="text-sm text-center">
+              <Link to="/login" className="text-indigo-400 hover:underline">
+                Already have an account? Sign in
+              </Link>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

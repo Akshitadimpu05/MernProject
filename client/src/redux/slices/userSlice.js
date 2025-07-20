@@ -5,7 +5,7 @@ export const loginUser = createAsyncThunk(
   'user/login',
   async ({ email, password }, { rejectWithValue }) => {
     try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
+      const response = await fetch('/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -33,7 +33,7 @@ export const registerUser = createAsyncThunk(
   'user/register',
   async ({ username, email, password }, { rejectWithValue }) => {
     try {
-      const response = await fetch('http://localhost:5000/api/auth/register', {
+      const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -67,7 +67,7 @@ export const getCurrentUser = createAsyncThunk(
         return rejectWithValue('No authentication token');
       }
       
-      const response = await fetch('http://localhost:5000/api/auth/me', {
+      const response = await fetch('/api/auth/me', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -78,6 +78,28 @@ export const getCurrentUser = createAsyncThunk(
       
       if (!response.ok) {
         return rejectWithValue(data.error || 'Failed to get user info');
+      }
+      
+      // Check premium status if user exists
+      if (data && data._id) {
+        try {
+          const premiumResponse = await fetch('/api/premium/status', {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+            },
+          });
+          
+          if (premiumResponse.ok) {
+            const premiumData = await premiumResponse.json();
+            // Add premium status to user data
+            data.isPremium = premiumData.isPremium;
+            data.premiumExpiresAt = premiumData.premiumExpiresAt;
+          }
+        } catch (premiumError) {
+          console.error('Error fetching premium status:', premiumError);
+          // Continue even if premium status check fails
+        }
       }
       
       return data;
@@ -100,9 +122,42 @@ export const logoutUser = createAsyncThunk(
   }
 );
 
+// Async thunk for updating premium status after payment verification
+export const updatePremiumStatus = createAsyncThunk(
+  'user/updatePremiumStatus',
+  async (paymentData, { rejectWithValue, getState }) => {
+    try {
+      const { token } = getState().user;
+      
+      if (!token) {
+        return rejectWithValue('No authentication token');
+      }
+      
+      const response = await fetch('/api/premium/verify-payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(paymentData),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        return rejectWithValue(data.message || 'Payment verification failed');
+      }
+      
+      return data.user;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 const initialState = {
   user: null,
-  token: localStorage.getItem('token') || null,
+  token: localStorage.getItem('token'), // Initialize token from localStorage
   isAuthenticated: !!localStorage.getItem('token'),
   loading: false,
   error: null,
@@ -167,15 +222,33 @@ const userSlice = createSlice({
             action.payload === 'Token is not valid') {
           state.isAuthenticated = false;
           state.user = null;
-          state.token = null;
+          state.token = null; // Clear token from state
+          state.error = null;
         }
       })
       
       // Logout cases
       .addCase(logoutUser.fulfilled, (state) => {
         state.user = null;
-        state.token = null;
+        state.token = null; // Clear token from state
         state.isAuthenticated = false;
+      })
+      
+      // Update premium status cases
+      .addCase(updatePremiumStatus.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updatePremiumStatus.fulfilled, (state, action) => {
+        state.loading = false;
+        if (state.user) {
+          state.user.isPremium = action.payload.isPremium;
+          state.user.premiumExpiresAt = action.payload.premiumExpiresAt;
+        }
+      })
+      .addCase(updatePremiumStatus.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
       });
   },
 });
