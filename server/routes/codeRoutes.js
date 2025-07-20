@@ -42,24 +42,47 @@ async function executeCpp(filePath) {
   return new Promise((resolve, reject) => {
     console.log(`Executing command: g++ ${filePath} -o ${outPath}`);
     
-    const command = process.platform === "win32"
-      ? `g++ ${filePath} -o ${outPath} && ${outPath}`
-      : `g++ ${filePath} -o ${outPath} && ${outPath}`;
-    
-    exec(command, { timeout: 10000 }, (error, stdout, stderr) => {
-      console.log('Execution completed');
-      if (error) {
-        console.error('Execution error:', error);
-        console.error('Stderr:', stderr);
-        reject({ error, stderr });
+    // First check if g++ is installed
+    exec('which g++', (whichError, whichStdout) => {
+      if (whichError || !whichStdout) {
+        console.error('g++ compiler not found in PATH');
+        // Try to locate it in common locations
+        exec('find /usr -name g++ -type f 2>/dev/null', (findError, findStdout) => {
+          console.log('Compiler search results:', findStdout || 'Not found');
+          reject({ error: new Error('g++ compiler not found'), stderr: 'Compiler not installed or not in PATH' });
+        });
         return;
       }
-      if (stderr && stderr.trim() !== '') {
-        console.error('Stderr:', stderr);
-        reject(stderr);
-        return;
-      }
-      console.log('Stdout:', stdout);
+      
+      console.log('g++ found at:', whichStdout.trim());
+      
+      // Check if directories exist and have proper permissions
+      const tempDir = path.dirname(filePath);
+      const outputDir = path.dirname(outPath);
+      
+      console.log(`Checking directories - Temp: ${tempDir}, Output: ${outputDir}`);
+      console.log(`Temp exists: ${fs.existsSync(tempDir)}, Output exists: ${fs.existsSync(outputDir)}`);
+      
+      const command = process.platform === "win32"
+        ? `g++ ${filePath} -o ${outPath} && ${outPath}`
+        : `g++ ${filePath} -o ${outPath} && ${outPath}`;
+      
+      exec(command, { timeout: 10000 }, (error, stdout, stderr) => {
+        console.log('Execution completed');
+        if (error) {
+          console.error('Execution error:', error);
+          console.error('Stderr:', stderr);
+          reject({ error, stderr });
+          return;
+        }
+        if (stderr && stderr.trim() !== '') {
+          console.error('Stderr:', stderr);
+          reject(stderr);
+          return;
+        }
+        console.log('Stdout:', stdout);
+        resolve(stdout);
+      });
       resolve(stdout);
     });
   });
