@@ -9,7 +9,7 @@ RUN apk add --no-cache build-base gcc g++ python3 make openjdk11
 COPY package.json package-lock.json ./
 
 # Install dependencies
-RUN npm ci
+RUN npm install
 
 # Create a fresh image to reduce size
 FROM node:18-alpine
