@@ -21,7 +21,7 @@ exports.register = async (req, res) => {
     
     // Create new user
     const user = new User({
-      name,
+      username: name, // Using name as username since the model requires username
       email,
       password,
       role: email.trim().toLowerCase() === 'admin@example.com' ? 'admin' : 'user',
@@ -37,7 +37,7 @@ exports.register = async (req, res) => {
       token,
       user: {
         id: user._id,
-        name: user.name,
+        name: user.username, // Return username as name for frontend compatibility
         email: user.email,
         role: user.role,
       },

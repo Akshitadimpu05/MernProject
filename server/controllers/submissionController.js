@@ -14,15 +14,22 @@ exports.getUserSubmissions = async (req, res) => {
       .lean();
 
     // Get all unique problem IDs from submissions
-    const problemIds = [...new Set(submissions.map(sub => sub.problemId))];
+    const problemIds = [...new Set(submissions.map(sub => sub.problemId ? sub.problemId.toString() : null).filter(Boolean))];
     
-    // Fetch all problems in one query - handle the case where problemId might not be a valid ObjectId
-    const problems = await Problem.find({
-      $or: [
-        { _id: { $in: problemIds.filter(id => id.match(/^[0-9a-fA-F]{24}$/)) } },
-        { problemNumber: { $in: problemIds } }
-      ]
-    }).lean();
+    console.log('Problem IDs from submissions:', problemIds);
+    
+    // Fetch all problems in one query
+    let problems = [];
+    if (problemIds.length > 0) {
+      problems = await Problem.find({
+        $or: [
+          { _id: { $in: problemIds.filter(id => id && id.match(/^[0-9a-fA-F]{24}$/)) } },
+          { problemNumber: { $in: problemIds.filter(id => id && !isNaN(parseInt(id))) } }
+        ]
+      }).lean();
+      
+      console.log(`Found ${problems.length} problems out of ${problemIds.length} problem IDs`);
+    }
     
     // Create a map for quick problem lookup
     const problemMap = {};
@@ -80,27 +87,35 @@ exports.getUserStats = async (req, res) => {
     // Process submissions to get unique problem IDs
     submissions.forEach(submission => {
       if (submission.problemId) {
-        uniqueProblemsAttempted.add(submission.problemId);
+        // Convert ObjectId to string if needed
+        const problemIdStr = submission.problemId.toString();
+        uniqueProblemsAttempted.add(problemIdStr);
         
         // Fix case sensitivity issue in status check
-        if (submission.status === 'accepted' || submission.status === 'Accepted') {
-          uniqueProblemsSolved.add(submission.problemId);
+        const status = submission.status ? submission.status.toLowerCase() : '';
+        if (status === 'accepted') {
+          uniqueProblemsSolved.add(problemIdStr);
         }
       }
     });
     
     // Get all solved problems to determine difficulty counts
-    const solvedProblemIds = [...uniqueProblemsSolved];
+    const solvedProblemIds = [...uniqueProblemsSolved].map(id => id.toString()).filter(Boolean);
+    
+    console.log('Solved problem IDs:', solvedProblemIds);
     
     // Handle the case where problemId might be a problem number instead of an ObjectId
-    const problems = await Problem.find({
-      $or: [
-        { _id: { $in: solvedProblemIds.filter(id => id.match(/^[0-9a-fA-F]{24}$/)) } },
-        { problemNumber: { $in: solvedProblemIds } }
-      ]
-    }).lean();
-    
-    console.log(`Found ${problems.length} problems out of ${solvedProblemIds.length} solved problem IDs`);
+    let problems = [];
+    if (solvedProblemIds.length > 0) {
+      problems = await Problem.find({
+        $or: [
+          { _id: { $in: solvedProblemIds.filter(id => id && id.match(/^[0-9a-fA-F]{24}$/)) } },
+          { problemNumber: { $in: solvedProblemIds.filter(id => id && !isNaN(parseInt(id))) } }
+        ]
+      }).lean();
+      
+      console.log(`Found ${problems.length} problems out of ${solvedProblemIds.length} solved problem IDs`);
+    }
     
     // Count problems by difficulty
     let easyCount = 0;
