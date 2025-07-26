@@ -6,8 +6,8 @@ const ContestEditModal = ({ contest, onClose, onSave }) => {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    startDate: '',
-    endDate: '',
+    startTime: '',
+    endTime: '',
     problems: []
   });
   const [availableProblems, setAvailableProblems] = useState([]);
@@ -28,8 +28,8 @@ const ContestEditModal = ({ contest, onClose, onSave }) => {
       setFormData({
         title: contest.title || '',
         description: contest.description || '',
-        startDate: formatDate(contest.startDate),
-        endDate: formatDate(contest.endDate),
+        startTime: formatDate(contest.startTime),
+        endTime: formatDate(contest.endTime),
         problems: contest.problems || []
       });
     }
@@ -153,8 +153,8 @@ const ContestEditModal = ({ contest, onClose, onSave }) => {
                 <label className="block text-sm font-medium text-gray-300 mb-1">Start Date & Time</label>
                 <input
                   type="datetime-local"
-                  name="startDate"
-                  value={formData.startDate}
+                  name="startTime"
+                  value={formData.startTime}
                   onChange={handleChange}
                   className="w-full bg-dark-bg border border-gray-700 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-accent-pink"
                   required
@@ -164,8 +164,8 @@ const ContestEditModal = ({ contest, onClose, onSave }) => {
                 <label className="block text-sm font-medium text-gray-300 mb-1">End Date & Time</label>
                 <input
                   type="datetime-local"
-                  name="endDate"
-                  value={formData.endDate}
+                  name="endTime"
+                  value={formData.endTime}
                   onChange={handleChange}
                   className="w-full bg-dark-bg border border-gray-700 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-accent-pink"
                   required

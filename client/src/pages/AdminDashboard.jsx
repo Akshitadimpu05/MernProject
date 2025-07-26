@@ -36,7 +36,9 @@ const AdminDashboard = () => {
       setStats(data);
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching dashboard stats:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error fetching dashboard stats:', error);
+      }
       setLoading(false);
     }
   };
@@ -48,7 +50,9 @@ const AdminDashboard = () => {
       setProblems(data);
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching problems:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error fetching problems:', error);
+      }
       setLoading(false);
     }
   };
@@ -60,7 +64,9 @@ const AdminDashboard = () => {
       setContests(data);
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching contests:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error fetching contests:', error);
+      }
       setLoading(false);
     }
   };
@@ -72,7 +78,9 @@ const AdminDashboard = () => {
       setUsers(data);
       setLoading(false);
     } catch (error) {
-      console.error('Error fetching users:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error fetching users:', error);
+      }
       setLoading(false);
     }
   };
@@ -83,7 +91,9 @@ const AdminDashboard = () => {
       fetchProblems();
       setDeleteConfirmation({ show: false, type: '', id: null });
     } catch (error) {
-      console.error('Error deleting problem:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error deleting problem:', error);
+      }
     }
   };
 
@@ -93,7 +103,9 @@ const AdminDashboard = () => {
       fetchContests();
       setDeleteConfirmation({ show: false, type: '', id: null });
     } catch (error) {
-      console.error('Error deleting contest:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error deleting contest:', error);
+      }
     }
   };
   
@@ -102,7 +114,9 @@ const AdminDashboard = () => {
       await adminApi.updateUserRole(userId, role);
       fetchUsers();
     } catch (error) {
-      console.error('Error updating user role:', error);
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error updating user role:', error);
+      }
     }
   };
 
@@ -153,10 +167,10 @@ const AdminDashboard = () => {
               </button>
             </div>
             
-            <div className="bg-dark-surface rounded-lg shadow-lg p-6 border-l-4 border-secondary-pink">
+            <div className="bg-dark-surface rounded-lg shadow-lg p-6 border-l-4 border-primary-pink">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-semibold text-secondary-pink">Contests</h3>
-                <span className="text-3xl font-bold text-secondary-pink">{stats.contestCount || 0}</span>
+                <h3 className="text-xl font-semibold text-primary-pink">Contests</h3>
+                <span className="text-3xl font-bold text-primary-pink">{stats.contestCount || 0}</span>
               </div>
               <p className="text-text-secondary mb-4">Total contests</p>
               <button 
@@ -269,10 +283,10 @@ const AdminDashboard = () => {
   const renderContests = () => (
     <div className="bg-dark-surface rounded-lg shadow-lg p-6">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-accent-pink">Contests Management</h2>
+        <h2 className="text-2xl font-bold text-primary-pink">Contests Management</h2>
         <Link 
           to="/admin/contest/create" 
-          className="px-4 py-2 bg-accent-pink hover:bg-secondary-pink text-white rounded-md transition-colors flex items-center"
+          className="px-4 py-2 bg-primary-pink hover:bg-secondary-pink text-white rounded-md transition-colors flex items-center"
         >
           <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -282,18 +296,18 @@ const AdminDashboard = () => {
       </div>
       {loading ? (
         <div className="flex justify-center py-8">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-accent-pink"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#ff16ac]"></div>
         </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full bg-dark-bg rounded-lg overflow-hidden">
             <thead className="bg-dark-surface border-b border-gray-700">
               <tr>
-                <th className="py-3 px-4 text-left text-sm font-medium text-accent-pink">ID</th>
-                <th className="py-3 px-4 text-left text-sm font-medium text-accent-pink">Title</th>
-                <th className="py-3 px-4 text-left text-sm font-medium text-accent-pink">Start Date</th>
-                <th className="py-3 px-4 text-left text-sm font-medium text-accent-pink">End Date</th>
-                <th className="py-3 px-4 text-left text-sm font-medium text-accent-pink">Actions</th>
+                <th className="py-3 px-4 text-left text-sm font-medium text-primary-pink">ID</th>
+                <th className="py-3 px-4 text-left text-sm font-medium text-primary-pink">Title</th>
+                <th className="py-3 px-4 text-left text-sm font-medium text-primary-pink">Start Date</th>
+                <th className="py-3 px-4 text-left text-sm font-medium text-primary-pink">End Date</th>
+                <th className="py-3 px-4 text-left text-sm font-medium text-primary-pink">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-700">
@@ -301,8 +315,8 @@ const AdminDashboard = () => {
                 <tr key={contest._id} className="hover:bg-dark-surface transition-colors">
                   <td className="py-3 px-4 text-sm">{contest._id.substring(0, 8)}...</td>
                   <td className="py-3 px-4 text-sm">{contest.title}</td>
-                  <td className="py-3 px-4 text-sm">{new Date(contest.startDate).toLocaleString()}</td>
-                  <td className="py-3 px-4 text-sm">{new Date(contest.endDate).toLocaleString()}</td>
+                  <td className="py-3 px-4 text-sm">{contest.startTime ? new Date(contest.startTime).toLocaleString() : 'Not set'}</td>
+                  <td className="py-3 px-4 text-sm">{contest.endTime ? new Date(contest.endTime).toLocaleString() : 'Not set'}</td>
                   <td className="py-3 px-4 text-sm">
                     <div className="flex space-x-2">
                       <Link 

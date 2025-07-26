@@ -12,7 +12,7 @@
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #FF4081;
+  background: #ff16ac;
   border-radius: 4px;
 }
 
@@ -82,7 +82,7 @@
 /* Focus styles for form elements */
 input:focus, textarea:focus, select:focus {
   outline: none;
-  border-color: #FF4081;
+  border-color: #ff16ac;
   box-shadow: 0 0 0 2px rgba(255, 64, 129, 0.2);
 }
 
@@ -107,7 +107,7 @@ input:focus, textarea:focus, select:focus {
 
 /* Gradient text for headings */
 .gradient-text {
-  background: linear-gradient(90deg, #FF4081, #F06292);
+  background: linear-gradient(90deg, #ff16ac, #F06292);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;

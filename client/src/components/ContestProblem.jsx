@@ -232,7 +232,7 @@ ${status.output}`);
     <div className="bg-dark-bg text-white p-4 min-h-screen">
       {/* Contest info */}
       <div className="mb-4 p-4 bg-dark-surface rounded-lg">
-        <h1 className="text-2xl font-bold text-[#FF4081] mb-2">{contest.title}</h1>
+        <h1 className="text-2xl font-bold text-[#ff16ac] mb-2">{contest.title}</h1>
         <div className="flex justify-between items-center">
           <p className="text-sm text-[#B0B0B0]">
             {new Date(contest.startTime).toLocaleString()} - {new Date(contest.endTime).toLocaleString()}
@@ -247,7 +247,7 @@ ${status.output}`);
       <div className="flex flex-col lg:flex-row gap-4 h-[calc(100vh-180px)]">
         {/* Left column: Problem statement */}
         <div className="lg:w-1/2 bg-[#1E1E1E] p-6 rounded-lg overflow-y-auto">
-          <h2 className="text-xl font-bold mb-2 text-[#FF4081]">{problem.title}</h2>
+          <h2 className="text-xl font-bold mb-2 text-[#ff16ac]">{problem.title}</h2>
           <div className={`inline-block px-2 py-1 rounded text-xs mb-4 ${
             problem.difficulty === 'Easy' ? 'bg-green-600' : 
             problem.difficulty === 'Medium' ? 'bg-yellow-600' : 'bg-red-600'
@@ -258,14 +258,14 @@ ${status.output}`);
           
           {problem.constraints && (
             <div className="mb-4">
-              <h3 className="text-lg font-semibold text-[#FF4081] mb-2">Constraints</h3>
+              <h3 className="text-lg font-semibold text-[#ff16ac] mb-2">Constraints</h3>
               <div className="whitespace-pre-wrap">{problem.constraints}</div>
             </div>
           )}
           
           {problem.testCases && problem.testCases.length > 0 && (
             <div>
-              <h3 className="text-lg font-semibold text-[#FF4081] mb-2">Examples</h3>
+              <h3 className="text-lg font-semibold text-[#ff16ac] mb-2">Examples</h3>
               {problem.testCases.map((testCase, index) => (
                 <div key={index} className="mb-4 p-4 bg-[#121212] rounded-md">
                   <div className="mb-2">
@@ -314,7 +314,7 @@ ${status.output}`);
                   onClick={handleSubmitSolution}
                   disabled={isSubmitting || !isContestActive}
                   className={`px-4 py-1 rounded ${
-                    isSubmitting || !isContestActive ? 'bg-gray-700 cursor-not-allowed' : 'bg-[#FF4081] hover:bg-[#F06292]'
+                    isSubmitting || !isContestActive ? 'bg-gray-700 cursor-not-allowed' : 'bg-[#ff16ac] hover:bg-[#F06292]'
                   }`}
                 >
                   {isSubmitting ? 'Submitting...' : 'Submit'}
@@ -350,7 +350,7 @@ ${status.output}`);
           <div className="bg-[#1E1E1E] p-4 rounded-lg flex flex-col h-2/5">
             <div className="flex flex-col h-full">
               <div className="flex-1 mb-2">
-                <h3 className="text-lg font-semibold mb-2 text-[#FF4081]">Custom Input</h3>
+                <h3 className="text-lg font-semibold mb-2 text-[#ff16ac]">Custom Input</h3>
                 <textarea
                   value={customInput}
                   onChange={(e) => setCustomInput(e.target.value)}
@@ -360,7 +360,7 @@ ${status.output}`);
               </div>
               
               <div className="flex-1">
-                <h3 className="text-lg font-semibold mb-2 text-[#FF4081]">Output</h3>
+                <h3 className="text-lg font-semibold mb-2 text-[#ff16ac]">Output</h3>
                 <pre className="w-full h-[calc(100%-30px)] p-2 bg-[#121212] text-white border border-gray-700 rounded font-mono overflow-auto">
                   {output || 'No output yet. Run your code to see results.'}
                 </pre>

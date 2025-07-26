@@ -4,6 +4,7 @@ import './styles/custom-colors.css'; // Import custom color overrides
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { getCurrentUser } from './redux/slices/userSlice';
+// PayPal integration removed due to Content Security Policy issues
 import Login from './pages/login';
 import Register from './pages/register';
 import Home from './pages/Home';
@@ -83,39 +84,41 @@ const AdminRoute = ({ children }) => {
 function App() {
   return (
     <Router>
-      <Routes>
-        {/* Public routes */}
-        <Route path="/login" element={
-          <div className="min-h-screen bg-dark-bg">
-            <Login />
-          </div>
-        } />
-        <Route path="/register" element={
-          <div className="min-h-screen bg-dark-bg">
-            <Register />
-          </div>
-        } />
-        
-        {/* Protected routes */}
-        <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-        <Route path="/contests" element={<ProtectedRoute><Contests /></ProtectedRoute>} />
-        <Route path="/contests/:id" element={<ProtectedRoute><ContestDetails /></ProtectedRoute>} />
-        <Route path="/contests/:contestId/problems/:problemId/solve" element={<ProtectedRoute><ContestProblem /></ProtectedRoute>} />
-        <Route path="/problems" element={<ProtectedRoute><Problems /></ProtectedRoute>} />
-        <Route path="/problems/:id" element={<ProtectedRoute><ProblemDetails /></ProtectedRoute>} />
-        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-        <Route path="/premium" element={<ProtectedRoute><Premium /></ProtectedRoute>} />
-        <Route path="/resources" element={<ProtectedRoute><Resources /></ProtectedRoute>} />
+      <div className="App">
+        <Routes>
+          {/* Public routes */}
+          <Route path="/login" element={
+            <div className="min-h-screen">
+              <Login />
+            </div>
+          } />
+          <Route path="/register" element={
+            <div className="min-h-screen">
+              <Register />
+            </div>
+          } />
+          
+          {/* Protected routes */}
+          <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+          <Route path="/contests" element={<ProtectedRoute><Contests /></ProtectedRoute>} />
+          <Route path="/contests/:id" element={<ProtectedRoute><ContestDetails /></ProtectedRoute>} />
+          <Route path="/contests/:contestId/problems/:problemId/solve" element={<ProtectedRoute><ContestProblem /></ProtectedRoute>} />
+          <Route path="/problems" element={<ProtectedRoute><Problems /></ProtectedRoute>} />
+          <Route path="/problems/:id" element={<ProtectedRoute><ProblemDetails /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="/premium" element={<ProtectedRoute><Premium /></ProtectedRoute>} />
+          <Route path="/resources" element={<ProtectedRoute><Resources /></ProtectedRoute>} />
 
-        {/* Admin routes */}
-        <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-        <Route path="/admin/contest/create" element={<AdminRoute><CreateContest /></AdminRoute>} />
-        <Route path="/admin/problem/create" element={<AdminRoute><CreateProblem /></AdminRoute>} />
-        <Route path="/admin/contests/:contestId/submissions" element={<AdminRoute><ContestSubmissionsView /></AdminRoute>} />
-        
-        {/* Fallback route */}
-        <Route path="*" element={<Navigate to="/" />} />
-      </Routes>
+          {/* Admin routes */}
+          <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+          <Route path="/admin/contest/create" element={<AdminRoute><CreateContest /></AdminRoute>} />
+          <Route path="/admin/problem/create" element={<AdminRoute><CreateProblem /></AdminRoute>} />
+          <Route path="/admin/contests/:contestId/submissions" element={<AdminRoute><ContestSubmissionsView /></AdminRoute>} />
+          
+          {/* Fallback route */}
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </div>
     </Router>
   );
 }

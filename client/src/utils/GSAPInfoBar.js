@@ -9,7 +9,7 @@ export class GSAPInfoBar {
       link: options.link || "https://gsap.com",
       position: options.position || "bottom",
       text: options.text || "Powered by GSAP",
-      color: options.color || "#FF4081",
+      color: options.color || "#ff16ac",
       background: options.background || "rgba(30, 30, 30, 0.85)",
       ...options
     };

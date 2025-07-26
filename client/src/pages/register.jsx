@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { registerUser, clearError } from '../redux/slices/userSlice';
-// Import video using Vite's asset handling
-import canyonVideo from '../assets/canyon.mov'
+import videoUrl from '/videos/bgpie2.mp4';
 
 function Register() {
   const [formData, setFormData] = useState({
@@ -21,7 +20,7 @@ function Register() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate('/problems');
+      navigate('/home');
     }
     dispatch(clearError());
   }, [isAuthenticated, navigate, dispatch]);
@@ -49,13 +48,21 @@ function Register() {
   };
 
   return (
-    <div className="relative w-full min-h-screen bg-[#121212]">
-      <video src={canyonVideo} className="absolute inset-0 w-full h-full object-cover" autoPlay loop muted playsInline>
-        Your browser does not support the video tag.
-      </video>
-      <div className="absolute inset-0 bg-black bg-opacity-50"></div>
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="bg-black bg-opacity-60 p-10 rounded-xl w-full max-w-md text-white">
+    <div className="relative w-full min-h-screen">
+      {/* Background video imported as a module */}
+      <video 
+        src={videoUrl}
+        className="absolute inset-0 w-full h-full object-cover" 
+        autoPlay 
+        loop 
+        muted 
+        playsInline
+      ></video>
+      {/* Semi-transparent overlay */}
+      <div className="absolute inset-0 bg-opacity-20"></div>
+      {/* Removed black overlay to make video fully visible */}
+      <div className="absolute inset-0 flex items-center justify-center z-10">
+        <div className="bg-black bg-opacity-40 p-10 rounded-xl w-full max-w-md text-white border border-white shadow-[0_0_15px_rgba(255,255,255,0.5)] backdrop-blur-sm">
           <h2 className="text-3xl font-bold text-center mb-6">Create your account</h2>
 
           {error && (

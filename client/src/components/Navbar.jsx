@@ -70,8 +70,8 @@ function Navbar() {
               to="/contests"
               className={`px-4 py-2 rounded-md text-sm font-medium text-white ${
                 isActive('/contests') 
-                  ? 'bg-secondary-pink' 
-                  : 'bg-dark-bg hover:bg-secondary-pink'
+                  ? 'bg-[#e4008f]' 
+                  : 'bg-dark-bg hover:bg-[#e4008f]'
               } transition-colors`}
             >
               Contests
@@ -80,8 +80,8 @@ function Navbar() {
               to="/problems"
               className={`px-4 py-2 rounded-md text-sm font-medium text-white ${
                 isActive('/problem') 
-                  ? 'bg-secondary-pink' 
-                  : 'bg-dark-bg hover:bg-secondary-pink'
+                  ? 'bg-[#e4008f]' 
+                  : 'bg-dark-bg hover:bg-[#e4008f]'
               } transition-colors`}
             >
               Problems
@@ -90,8 +90,8 @@ function Navbar() {
               to="/premium"
               className={`px-4 py-2 rounded-md text-sm font-medium text-white ${
                 isActive('/premium') 
-                  ? 'bg-secondary-pink' 
-                  : 'bg-dark-bg hover:bg-secondary-pink'
+                  ? 'bg-[#e4008f]' 
+                  : 'bg-dark-bg hover:bg-[#e4008f]'
               } transition-colors`}
             >
               Premium
@@ -101,8 +101,8 @@ function Navbar() {
                 to="/resources"
                 className={`px-4 py-2 rounded-md text-sm font-medium text-white ${
                   isActive('/resources')
-                    ? 'bg-secondary-pink'
-                    : 'bg-dark-bg hover:bg-secondary-pink'
+                    ? 'bg-[#e4008f]'
+                    : 'bg-dark-bg hover:bg-[#e4008f]'
                 } transition-colors flex items-center`}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -135,25 +135,35 @@ function Navbar() {
                 <span className="text-white mr-2 hidden md:block">
                   Hola, {user?.username || user?.name || 'User'}
                 </span>
-                <div className="h-8 w-8 rounded-full bg-dark-bg flex items-center justify-center text-white hover:bg-secondary-pink transition-colors">
+                <div className="h-8 w-8 rounded-full bg-dark-bg flex items-center justify-center text-white hover:bg-[#e4008f] transition-colors">
                   {(user?.username || user?.name || 'U').charAt(0).toUpperCase()}
                 </div>
               </div>
               
               {/* Dropdown menu */}
               {showDropdown && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10">
+                <div className="absolute right-0 mt-2 w-56 bg-[#2D2D2D] border-2 border-[#ff16ac] rounded-md shadow-xl py-2 z-10 animate-fadeIn">
+                  <div className="px-4 py-2 border-b border-gray-700">
+                    <p className="text-[#ff16ac] font-semibold">{user?.username || user?.name || 'User'}</p>
+                    <p className="text-gray-400 text-xs">{user?.email || 'user@example.com'}</p>
+                  </div>
                   <Link
                     to="/profile"
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-primary-pink hover:text-white"
+                    className="flex items-center px-4 py-2 text-sm text-white hover:bg-[#3D3D3D] transition-colors"
                     onClick={() => setShowDropdown(false)}
                   >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 text-[#ff16ac]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
                     Profile
                   </Link>
                   <button
                     onClick={handleLogout}
-                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-primary-pink hover:text-white"
+                    className="flex items-center w-full text-left px-4 py-2 text-sm text-white hover:bg-[#3D3D3D] transition-colors"
                   >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2 text-[#ff16ac]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
                     Logout
                   </button>
                 </div>
@@ -168,8 +178,8 @@ function Navbar() {
             to="/contests"
             className={`px-3 py-1 rounded-md text-sm font-medium text-white ${
               isActive('/contests') 
-                ? 'bg-secondary-pink' 
-                : 'bg-dark-bg hover:bg-secondary-pink'
+                ? 'bg-[#e4008f]' 
+                : 'bg-dark-bg hover:bg-[#e4008f]'
             } transition-colors`}
           >
             Contests
@@ -178,8 +188,8 @@ function Navbar() {
             to="/problems"
             className={`px-3 py-1 rounded-md text-sm font-medium text-white ${
               isActive('/problem') 
-                ? 'bg-secondary-pink' 
-                : 'bg-dark-bg hover:bg-secondary-pink'
+                ? 'bg-[#e4008f]' 
+                : 'bg-dark-bg hover:bg-[#e4008f]'
             } transition-colors`}
           >
             Problems
@@ -188,8 +198,8 @@ function Navbar() {
             to="/premium"
             className={`px-3 py-1 rounded-md text-sm font-medium text-white ${
               isActive('/premium') 
-                ? 'bg-secondary-pink' 
-                : 'bg-dark-bg hover:bg-secondary-pink'
+                ? 'bg-[#e4008f]' 
+                : 'bg-dark-bg hover:bg-[#e4008f]'
             } transition-colors`}
           >
             Premium
@@ -199,8 +209,8 @@ function Navbar() {
               to="/resources"
               className={`px-3 py-1 rounded-md text-sm font-medium text-white ${
                 isActive('/resources')
-                  ? 'bg-secondary-pink'
-                  : 'bg-dark-bg hover:bg-secondary-pink'
+                  ? 'bg-[#e4008f]'
+                  : 'bg-dark-bg hover:bg-[#e4008f]'
               } transition-colors flex items-center`}
             >
               <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
