@@ -25,10 +25,10 @@ function Problems() {
             <div
               key={problem.id}
               onClick={() => handleProblemClick(problem)}
-              className="bg-dark-surface rounded-lg border border-gray-800 shadow-lg p-6 cursor-pointer hover:border-primary-pink transition-all duration-300 relative"
+              className="bg-dark-surface rounded-lg border border-[#ff16ac] shadow-lg p-6 cursor-pointer hover:border-[#ff16ac] transition-all duration-300 relative"
             >
               {problem.isPremium && (!user || !user.isPremium) && (
-                <div className="absolute top-0 right-0 bg-[#FF4081] text-white px-2 py-1 rounded-bl-lg rounded-tr-lg flex items-center">
+                <div className="absolute top-0 right-0 bg-[#ff16ac] text-white px-2 py-1 rounded-bl-lg rounded-tr-lg flex items-center">
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                   </svg>
@@ -49,14 +49,14 @@ function Problems() {
               <p className="mt-4 text-text-secondary text-sm line-clamp-3">{problem.description.substring(0, 120)}...</p>
               <div className="mt-4 flex justify-end">
                 {problem.isPremium && (!user || !user.isPremium) ? (
-                  <button className="text-[#FF80AB] hover:text-[#FF4081] text-sm transition-colors flex items-center">
+                  <button className="text-primary-pink hover:text-primary-pink hover:drop-shadow-[0_0_6px_#ff16ac] text-sm transition-all flex items-center">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
                     Unlock with Premium
-                  </button>
+                  </button>                
                 ) : (
-                  <button className="text-accent-pink hover:text-primary-pink text-sm transition-colors">
+                  <button className="text-[#ff16ac] hover:text-[#F06292] text-sm transition-colors">
                     Solve Challenge →
                   </button>
                 )}

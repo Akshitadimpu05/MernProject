@@ -24,7 +24,19 @@ const CodeEditor = ({ code, setCode }) => {
           minimap: { enabled: true },
           fontSize: 14,
           wordWrap: "on",
-          theme: "vs-dark"
+          theme: "vs-dark",
+          background: "#1E1E1E"
+        }}
+        beforeMount={(monaco) => {
+          monaco.editor.defineTheme('customDarkTheme', {
+            base: 'vs-dark',
+            inherit: true,
+            rules: [],
+            colors: {
+              'editor.background': '#1E1E1E',
+            }
+          });
+          monaco.editor.setTheme('customDarkTheme');
         }}
       />
     </div>

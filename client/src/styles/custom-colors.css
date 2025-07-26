@@ -2,7 +2,7 @@
 
 /* Background colors */
 .bg-primary-pink {
-  background-color: #FF4081 !important;
+  background-color: #ff16ac !important;
 }
 
 .bg-secondary-pink {
@@ -19,7 +19,7 @@
 
 /* Text colors */
 .text-primary-pink {
-  color: #FF4081 !important;
+  color: #ff16ac !important;
 }
 
 .text-secondary-pink {
@@ -40,7 +40,7 @@
 
 /* Border colors */
 .border-primary-pink {
-  border-color: #FF4081 !important;
+  border-color: #ff16ac !important;
 }
 
 .border-secondary-pink {
@@ -57,12 +57,12 @@
 
 /* Loading screen overrides */
 .loading-screen {
-  background-color: #FF4081 !important;
+  background-color: #ff16ac !important;
 }
 
 /* Override the background colors in the app */
 .min-h-screen.bg-\[\#FFB6C1\] {
-  background-color: #FF4081 !important;
+  background-color: #ff16ac !important;
 }
 
 .min-h-screen.bg-\[\#1A1A1D\] {

@@ -15,9 +15,9 @@ services:
         sync: false
       - key: JWT_SECRET
         sync: false
-      - key: RAZORPAY_KEY_ID
+      - key: PAYPAL_CLIENT_ID
         sync: false
-      - key: RAZORPAY_KEY_SECRET
+      - key: PAYPAL_CLIENT_SECRET
         sync: false
       - key: CLIENT_URL
         value: https://cavelix.vercel.app

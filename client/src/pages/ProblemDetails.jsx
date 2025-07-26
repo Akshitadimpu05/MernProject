@@ -301,7 +301,7 @@ function ProblemDetails() {
       <div className="fixed inset-0 bg-[#121212] bg-opacity-70 flex items-center justify-center z-50">
         <div className="bg-[#1E1E1E] p-6 rounded-lg shadow-xl w-11/12 max-w-4xl max-h-[90vh] overflow-y-auto text-white">
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-xl font-bold text-[#FF4081]">AI Code Analysis</h3>
+            <h3 className="text-xl font-bold text-[#ff16ac]">AI Code Analysis</h3>
             <button 
               onClick={() => setShowAnalysis(false)}
               className="text-[#B0B0B0] hover:text-white"
@@ -315,10 +315,10 @@ function ProblemDetails() {
           <div className="mb-6 p-4 bg-[#121212] rounded-lg">
             <div className="mb-4">
               <p className="mb-2">
-                <span className="text-[#FF80AB] font-semibold">Time Complexity:</span> {analysis.complexity?.timeComplexity || analysis.suggestions?.optimizedTimeComplexity || 'Unknown'}
+                <span className="text-[#ff6fd0] font-semibold">Time Complexity:</span> {analysis.complexity?.timeComplexity || analysis.suggestions?.optimizedTimeComplexity || 'Unknown'}
               </p>
               <p>
-                <span className="text-[#FF80AB] font-semibold">Space Complexity:</span> {analysis.complexity?.spaceComplexity || analysis.suggestions?.optimizedSpaceComplexity || 'Unknown'}
+                <span className="text-[#ff6fd0] font-semibold">Space Complexity:</span> {analysis.complexity?.spaceComplexity || analysis.suggestions?.optimizedSpaceComplexity || 'Unknown'}
               </p>
             </div>
             <div className="mb-4 whitespace-pre-wrap text-[#B0B0B0]">
@@ -328,21 +328,21 @@ function ProblemDetails() {
           
           {(analysis.suggestions?.optimizedCode || analysis.suggestions?.suggestions?.length > 0) && (
             <div className="mb-4">
-              <h4 className="font-semibold mb-2 text-[#FF80AB]">Optimization Suggestions:</h4>
+              <h4 className="font-semibold mb-2 text-[#ff6fd0]">Optimization Suggestions:</h4>
               {analysis.suggestions?.suggestions?.map((suggestion, index) => (
                 <div key={index} className="mb-2 text-[#B0B0B0]">{suggestion}</div>
               ))}
               
               {analysis.suggestions?.optimizedCode && (
                 <>
-                  <h4 className="font-semibold my-2 text-[#FF80AB]">Optimized Code:</h4>
+                  <h4 className="font-semibold my-2 text-[#ff6fd0]">Optimized Code:</h4>
                   <pre className="bg-[#121212] text-white p-4 rounded-lg overflow-x-auto">{analysis.suggestions.optimizedCode}</pre>
                   <button
                     onClick={() => {
                       setCode(analysis.suggestions.optimizedCode);
                       setShowAnalysis(false);
                     }}
-                    className="mt-4 px-4 py-2 bg-[#FF4081] hover:bg-[#F06292] text-white rounded transition-colors"
+                    className="mt-4 px-4 py-2 bg-[#ff16ac] hover:bg-[#F06292] text-white rounded transition-colors"
                   >
                     Use This Code
                   </button>
@@ -376,7 +376,7 @@ function ProblemDetails() {
       <div className="bg-[#1E1E1E] border-b border-gray-700 py-3 px-6">
         <div className="container mx-auto flex flex-col md:flex-row justify-between items-start md:items-center">
           <div>
-            <h1 className="text-2xl font-bold text-[#FF4081]">{problem.title}</h1>
+            <h1 className="text-2xl font-bold text-[#ff16ac]">{problem.title}</h1>
             <div className="flex items-center mt-1">
               <span className={`px-2 py-0.5 text-xs rounded ${
                 problem.difficulty === 'Easy' 
@@ -399,7 +399,7 @@ function ProblemDetails() {
               <option value="java">Java</option>
               <option value="python">Python</option>
             </select>
-            {user && <span className="text-[#B0B0B0]">👋 {user.username}</span>}
+            {user && <span className="text-[#B0B0B0]">⚡️Change Language</span>}
           </div>
         </div>
       </div>
@@ -410,14 +410,14 @@ function ProblemDetails() {
           {/* Left column: Problem description - scrollable */}
           <div className="w-full lg:w-2/5 h-full overflow-y-auto p-4 custom-scrollbar">
             <div className="bg-[#1E1E1E] p-6 rounded-lg h-full">
-              <h2 className="text-xl font-semibold mb-4 text-[#FF4081]">Problem Description</h2>
+              <h2 className="text-xl font-semibold mb-4 text-[#ff16ac]">Problem Description</h2>
               <div className="prose prose-invert max-w-none">
                 <p className="whitespace-pre-wrap text-[#B0B0B0]">{problem.description}</p>
                 
-                <h3 className="mt-6 font-semibold text-[#FF80AB]">Example</h3>
+                <h3 className="mt-6 font-semibold text-[#ff6fd0]">Example</h3>
                 <pre className="bg-[#121212] p-4 rounded-lg mt-2 overflow-x-auto">{problem.example}</pre>
                 
-                <h3 className="mt-6 font-semibold text-[#FF80AB]">Constraints</h3>
+                <h3 className="mt-6 font-semibold text-[#ff6fd0]">Constraints</h3>
                 <pre className="bg-[#121212] p-4 rounded-lg mt-2 overflow-x-auto">{problem.constraints || 'No specific constraints provided.'}</pre>
               </div>
               
@@ -425,7 +425,7 @@ function ProblemDetails() {
               <button
                 onClick={requestAnalysis}
                 disabled={loadingAnalysis || !output}
-                className="mt-6 w-full px-4 py-2 bg-[#F06292] hover:bg-[#FF4081] text-white rounded-lg transition-colors disabled:bg-gray-700 disabled:cursor-not-allowed flex items-center justify-center"
+                className="mt-6 w-full px-4 py-2 bg-[#F06292] hover:bg-[#ff16ac] text-white rounded-lg transition-colors disabled:bg-gray-700 disabled:cursor-not-allowed flex items-center justify-center"
               >
                 {loadingAnalysis ? (
                   <>
@@ -447,7 +447,7 @@ function ProblemDetails() {
             {/* Top half: Code editor */}
             <div className="h-1/2 bg-[#1E1E1E] p-4 rounded-lg mb-4 overflow-hidden flex flex-col">
               <div className="flex justify-between items-center mb-2">
-                <h2 className="text-lg font-semibold text-[#FF4081]">Solution</h2>
+                <h2 className="text-lg font-semibold text-[#ff16ac]">Solution</h2>
                 <div className="text-sm text-[#B0B0B0]">{language === 'cpp' ? 'C++' : language === 'java' ? 'Java' : 'Python'}</div>
               </div>
               
@@ -471,7 +471,7 @@ function ProblemDetails() {
             <div className="h-1/2 bg-[#1E1E1E] p-4 rounded-lg overflow-y-auto custom-scrollbar">
               {/* Custom input */}
               <div className="mb-4">
-                <label className="block font-semibold mb-2 text-[#FF80AB]">Custom Input</label>
+                <label className="block font-semibold mb-2 text-[#ff6fd0]">Custom Input</label>
                 <textarea
                   value={customInput}
                   onChange={(e) => setCustomInput(e.target.value)}
@@ -499,7 +499,7 @@ function ProblemDetails() {
                 <button 
                   onClick={handleSubmitWithToast} 
                   disabled={loading}
-                  className="px-4 py-2 bg-[#FF4081] hover:bg-[#F06292] text-white rounded-lg transition-colors flex items-center disabled:bg-gray-700 disabled:cursor-not-allowed shadow-lg"
+                  className="px-4 py-2 bg-[#ff16ac] hover:bg-[#F06292] text-white rounded-lg transition-colors flex items-center disabled:bg-gray-700 disabled:cursor-not-allowed shadow-lg"
                 >
                   {loading ? 'Submitting...' : '✅ Submit'}
                 </button>
@@ -507,7 +507,7 @@ function ProblemDetails() {
 
               {/* Output section */}
               <div>
-                <h2 className="text-lg font-semibold mb-2 text-[#FF80AB]">Output</h2>
+                <h2 className="text-lg font-semibold mb-2 text-[#ff6fd0]">Output</h2>
                 <pre className="bg-[#121212] text-white p-4 rounded-lg overflow-x-auto min-h-[120px] max-h-[200px] overflow-y-auto shadow-inner">
                   {loading ? 'Processing...' : output || 'Run your code to see output here'}
                 </pre>

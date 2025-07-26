@@ -29,7 +29,7 @@ const UserSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
-  razorpayCustomerId: {
+  paypalTransactionId: {
     type: String,
     default: null
   },

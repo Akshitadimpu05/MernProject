@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { auth } from '../auth/auth';
+import { problems } from '../data/problems';
 
 function Profile() {
   const { user } = useSelector(state => state.user);
@@ -19,11 +20,43 @@ function Profile() {
     hardCount: 0
   });
   const [loading, setLoading] = useState(false);
+  const [showCodePopup, setShowCodePopup] = useState(false);
+  const [selectedCode, setSelectedCode] = useState('');
 
+  // Create a map of problem IDs to titles from problems data
+  const problemTitleMap = {};
+  problems.forEach(problem => {
+    problemTitleMap[problem.id] = problem.title;
+  });
+
+  // Create a map of problem IDs to their difficulties from problems.js
+  const problemDifficultyMap = {};
+  problems.forEach(problem => {
+    problemDifficultyMap[problem.id] = problem.difficulty;
+  });
+
+  // Function to manually calculate difficulty stats from solved problems
+  const calculateDifficultyStats = (solvedProblemIds) => {
+    // Count by difficulty
+    let easyCount = 0;
+    let mediumCount = 0;
+    let hardCount = 0;
+    
+    solvedProblemIds.forEach(id => {
+      const difficulty = problemDifficultyMap[id];
+      
+      if (difficulty === 'Easy') easyCount++;
+      else if (difficulty === 'Medium') mediumCount++;
+      else if (difficulty === 'Hard') hardCount++;
+    });
+    
+    return { easyCount, mediumCount, hardCount };
+  };
+  
   useEffect(() => {
     if (user) {
-      // First fetch submissions, then fetch stats
       fetchSubmissions();
+      fetchUserStats();
     }
   }, [user]);
 
@@ -38,33 +71,32 @@ function Profile() {
       
       if (response.ok) {
         const data = await response.json();
-        console.log('User stats from API:', data);
         
-        // Check if we got valid data
-        if (data && typeof data === 'object') {
-          // Ensure all required fields are present, use defaults if not
-          const statsData = {
-            solved: data.solved || 0,
-            attempted: data.attempted || 0,
-            totalSubmissions: data.totalSubmissions || 0,
-            streak: data.streak || 0,
-            rank: data.rank || calculateRank(data.solved || 0),
-            points: data.points || 0,
-            easyCount: data.easyCount || 0,
-            mediumCount: data.mediumCount || 0,
-            hardCount: data.hardCount || 0
-          };
-          
-          setStats(statsData);
-          return; // Exit early since we have real data
-        } else {
-          console.warn('Invalid stats data format from API');
-        }
+        // Get the list of solved problem IDs
+        const solvedProblemIds = data.solvedProblems || [];
+        
+        // Calculate difficulty counts directly using problems.js data
+        const difficultyStats = calculateDifficultyStats(solvedProblemIds);
+        
+        // Create the stats object with our manually calculated difficulty counts
+        const statsData = {
+          solved: data.solved || solvedProblemIds.length || 0,
+          attempted: data.attempted || 0,
+          totalSubmissions: data.totalSubmissions || 0,
+          streak: data.streak || 0,
+          rank: data.rank || calculateRank(data.solved || solvedProblemIds.length || 0),
+          points: data.points || 0,
+          easyCount: difficultyStats.easyCount,
+          mediumCount: difficultyStats.mediumCount,
+          hardCount: difficultyStats.hardCount
+        };
+        setStats(statsData);
+        return; // Exit early since we have calculated the data
       } else {
         console.error(`Error fetching user stats: ${response.status}`);
       }
       
-      // If API fails or returns invalid data, calculate stats from submissions
+      // If API fails, calculate stats from submissions
       calculateStatsFromSubmissions();
     } catch (error) {
       console.error('Error fetching user stats:', error);
@@ -77,7 +109,7 @@ function Profile() {
 
   const calculateStatsFromSubmissions = () => {
     if (submissions.length > 0) {
-      console.log('Calculating stats from submissions:', submissions);
+      // Calculate stats from submissions
       
       // Calculate unique problems solved and attempted
       const uniqueProblemsSolved = new Set();
@@ -90,6 +122,21 @@ function Profile() {
         Hard: new Set()
       };
       
+      // Create a map of problem IDs to their difficulties from the problems data
+      const problemDifficultyMap = {};
+      problems.forEach(problem => {
+        // Map both string and number versions of the ID to handle different formats
+        problemDifficultyMap[problem.id] = problem.difficulty;
+        problemDifficultyMap[parseInt(problem.id)] = problem.difficulty;
+        // Also map the MongoDB ObjectId string if it exists
+        if (problem._id) {
+          problemDifficultyMap[problem._id] = problem.difficulty;
+        }
+      });
+      
+      // Debug the mapping
+      // Map problems to their difficulties
+      
       submissions.forEach(submission => {
         // Make sure we have a valid problemId
         if (submission.problemId) {
@@ -98,36 +145,57 @@ function Profile() {
           if (submission.status === 'Accepted') {
             uniqueProblemsSolved.add(submission.problemId);
             
+            // Try to get difficulty directly from submission
+            let difficulty = submission.difficulty;
+            
+            // If not available, try to get from problem map
+            if (!difficulty || difficulty === 'Unknown') {
+              // Try different formats of the problem ID
+              difficulty = problemDifficultyMap[submission.problemId] || 
+                           problemDifficultyMap[String(submission.problemId)] || 
+                           problemDifficultyMap[parseInt(submission.problemId)] || 
+                           'Unknown';
+              
+              // If still not found, try to find the problem in problems.js
+              if (difficulty === 'Unknown') {
+                const matchingProblem = problems.find(p => 
+                  p.id === String(submission.problemId) || 
+                  p.id === submission.problemId || 
+                  (p._id && p._id === submission.problemId)
+                );
+                
+                if (matchingProblem) {
+                  difficulty = matchingProblem.difficulty;
+                }
+              }
+            }
+            
+            // Process problem difficulty
+            
             // Add to the appropriate difficulty set
-            if (submission.difficulty === 'Easy') {
+            if (difficulty === 'Easy') {
               solvedProblemsByDifficulty.Easy.add(submission.problemId);
-            } else if (submission.difficulty === 'Medium') {
+            } else if (difficulty === 'Medium') {
               solvedProblemsByDifficulty.Medium.add(submission.problemId);
-            } else if (submission.difficulty === 'Hard') {
+            } else if (difficulty === 'Hard') {
               solvedProblemsByDifficulty.Hard.add(submission.problemId);
             }
           }
         }
       });
       
-      // Count unique problems by difficulty
+      // Count the number of unique problems solved and attempted
+      const solved = uniqueProblemsSolved.size;
+      const attempted = uniqueProblemsAttempted.size;
+      
+      // Count problems by difficulty
       const easyCount = solvedProblemsByDifficulty.Easy.size;
       const mediumCount = solvedProblemsByDifficulty.Medium.size;
       const hardCount = solvedProblemsByDifficulty.Hard.size;
       
-      const solved = uniqueProblemsSolved.size;
-      
-      console.log('Stats calculation results:', {
-        solved,
-        attempted: uniqueProblemsAttempted.size,
-        easyCount,
-        mediumCount,
-        hardCount
-      });
-      
       setStats({
         solved,
-        attempted: uniqueProblemsAttempted.size,
+        attempted,
         totalSubmissions: submissions.length,
         streak: Math.min(5, Math.floor(submissions.length / 3)), // Simple streak calculation
         rank: calculateRank(solved),
@@ -166,7 +234,7 @@ function Profile() {
       }
       
       let data = await response.json();
-      console.log('Raw submission data:', data);
+      // Process submission data
       
       if (Array.isArray(data)) {
         // Process the data to ensure all fields are properly populated
@@ -174,6 +242,7 @@ function Profile() {
           // Extract problem data more carefully
           let problemName = 'Unknown Problem';
           let difficulty = 'Unknown';
+          let code = 'No code available';
           
           // Try to get problem name from different possible sources
           if (submission.problemName) {
@@ -187,7 +256,21 @@ function Profile() {
             difficulty = submission.difficulty;
           } else if (submission.problem && submission.problem.difficulty) {
             difficulty = submission.problem.difficulty;
+          } else {
+            // Try to get difficulty from problems.js
+            const problemId = submission.problemId || (submission.problem && submission.problem._id);
+            const matchingProblem = problems.find(p => p.id === String(problemId));
+            if (matchingProblem) {
+              difficulty = matchingProblem.difficulty;
+            }
           }
+          
+          // Make sure we have the code
+          if (submission.code) {
+            code = submission.code;
+          }
+          
+          // Process each submission
           
           return {
             id: submission.id || submission._id,
@@ -198,11 +281,12 @@ function Profile() {
             language: submission.language || 'Unknown',
             runtime: submission.runtime || 'N/A',
             memory: submission.memory || 'N/A',
+            code: code,
             timestamp: submission.timestamp || submission.createdAt || new Date().toISOString()
           };
         });
         
-        console.log('Processed submissions:', data);
+        // Set processed submissions
         setSubmissions(data);
         
         // After successfully fetching submissions, fetch stats
@@ -254,6 +338,18 @@ function Profile() {
       case 'Compilation Error': return 'text-purple-400';
       default: return 'text-gray-400';
     }
+  };
+
+  // Function to handle closing the code popup
+  const showCode = (code) => {
+    // Display code in popup
+    setSelectedCode(code || 'No code available');
+    setShowCodePopup(true);
+  };
+
+  const handleClosePopup = () => {
+    setShowCodePopup(false);
+    setSelectedCode('');
   };
 
   return (
@@ -363,7 +459,7 @@ function Profile() {
                   {submissions.slice(0, 3).map(submission => (
                     <div key={submission.id} className="bg-dark-bg p-3 rounded-lg flex justify-between items-center">
                       <div>
-                        <div className="font-medium">{submission.problemName}</div>
+                        <div className="font-medium">{problemTitleMap[submission.problemId] || `Problem ${submission.problemId}`}</div>
                         <div className="text-sm text-text-secondary">{formatDate(submission.timestamp)}</div>
                       </div>
                       <div className={`${getStatusColor(submission.status)} font-medium`}>
@@ -395,7 +491,7 @@ function Profile() {
                           a 15.9155 15.9155 0 0 1 0 31.831
                           a 15.9155 15.9155 0 0 1 0 -31.831"
                         fill="none"
-                        stroke="#FF4081"
+                        stroke="#ff16ac"
                         strokeWidth="2"
                         strokeDasharray={`${(stats.points / 2000) * 100}, 100`}
                       />
@@ -449,30 +545,33 @@ function Profile() {
               <table className="min-w-full divide-y divide-gray-700">
                 <thead className="bg-dark-bg">
                   <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-primary-pink uppercase tracking-wider">ID</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-primary-pink uppercase tracking-wider">Problem</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-primary-pink uppercase tracking-wider">Difficulty</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-primary-pink uppercase tracking-wider">Status</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-primary-pink uppercase tracking-wider">Language</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-primary-pink uppercase tracking-wider">Runtime</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-primary-pink uppercase tracking-wider">Memory</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-primary-pink uppercase tracking-wider">Code</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-primary-pink uppercase tracking-wider">Submitted</th>
                   </tr>
                 </thead>
                 <tbody className="bg-dark-surface divide-y divide-gray-700">
                   {submissions.map((submission) => (
                     <tr key={submission.id} className="hover:bg-dark-bg transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">{submission.problemName}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <span className={`px-2 py-1 text-xs rounded ${submission.difficulty === 'Easy' ? 'bg-green-600' : submission.difficulty === 'Medium' ? 'bg-yellow-600' : 'bg-red-600'}`}>
-                          {submission.difficulty || 'Unknown'}
-                        </span>
-                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">{submission.id.toString().slice(-6)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">{problemTitleMap[submission.problemId] || `Problem ${submission.problemId}`}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
                         <span className={getStatusColor(submission.status)}>{submission.status}</span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">{submission.language}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">{submission.runtime}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">{submission.memory}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <button 
+                          onClick={() => {
+                            // Handle submission with code
+                            setSelectedCode(submission.code || 'No code available');
+                            setShowCodePopup(true);
+                          }}
+                          className="px-3 py-1 bg-primary-pink text-white text-xs rounded hover:bg-secondary-pink transition-colors"
+                        >
+                          View Code
+                        </button>
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-text-secondary">{formatDate(submission.timestamp)}</td>
                     </tr>
                   ))}
@@ -531,6 +630,38 @@ function Profile() {
           </div>
         )}
       </div>
+      
+      {/* Code Popup Modal */}
+      {showCodePopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
+          <div className="bg-dark-surface rounded-lg shadow-lg w-full max-w-4xl max-h-[80vh] overflow-hidden">
+            <div className="flex justify-between items-center p-4 border-b border-gray-700">
+              <h3 className="text-lg font-semibold text-primary-pink">Submission Code</h3>
+              <button 
+                onClick={handleClosePopup}
+                className="text-gray-400 hover:text-white"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-4 overflow-auto max-h-[calc(80vh-8rem)]">
+              <pre className="bg-dark-bg p-4 rounded-lg overflow-x-auto text-sm text-white whitespace-pre-wrap">
+                {selectedCode}
+              </pre>
+            </div>
+            <div className="p-4 border-t border-gray-700 flex justify-end">
+              <button 
+                onClick={handleClosePopup}
+                className="px-4 py-2 bg-primary-pink text-white rounded hover:bg-secondary-pink transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

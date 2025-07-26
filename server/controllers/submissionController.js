@@ -41,25 +41,23 @@ exports.getUserSubmissions = async (req, res) => {
       }
     });
 
-    // Enhance submissions with problem details
+    // Enhance submissions with problem details - simplified to only include id, status, and code
     const enhancedSubmissions = submissions.map(submission => {
       // Check if problemId is already populated or use the map
       const problem = (submission.problemId && typeof submission.problemId === 'object') 
         ? submission.problemId 
         : problemMap[submission.problemId];
       
+      // Ensure code is available
+      const code = submission.code || 'No code available';
+      
       return {
         id: submission._id,
         problemId: typeof submission.problemId === 'object' ? submission.problemId._id : submission.problemId,
         problemName: problem ? problem.title : submission.problemName || 'Unknown Problem',
-        difficulty: problem ? problem.difficulty : submission.difficulty || 'Unknown',
         status: mapStatusToDisplay(submission.status),
-        language: submission.language || 'Unknown',
-        runtime: submission.executionTime ? `${submission.executionTime}ms` : 'N/A',
-        memory: submission.memoryUsed ? `${submission.memoryUsed.toFixed(1)} MB` : 'N/A',
-        timestamp: submission.createdAt || submission.timestamp,
-        // Include the full problem object for reference if needed
-        problem: problem || null
+        code: code, // Include the code for popup display
+        timestamp: submission.createdAt || submission.timestamp
       };
     });
 
@@ -137,19 +135,19 @@ exports.getUserStats = async (req, res) => {
     // Calculate points
     const points = calculatePoints(uniqueProblemsSolved.size, submissions.length);
     
-    const stats = {
+    // Return the stats
+    res.json({
       solved: uniqueProblemsSolved.size,
       attempted: uniqueProblemsAttempted.size,
       totalSubmissions: submissions.length,
-      streak,
-      rank,
-      points,
+      streak: calculateStreak(submissions),
+      rank: calculateRank(uniqueProblemsSolved.size),
+      points: calculatePoints(uniqueProblemsSolved.size, submissions.length),
       easyCount,
       mediumCount,
-      hardCount
-    };
-    
-    res.json(stats);
+      hardCount,
+      solvedProblems: [...uniqueProblemsSolved] // Include the array of solved problem IDs
+    });
   } catch (error) {
     console.error('Error fetching user stats:', error);
     res.status(500).json({ message: 'Server error', error: error.message });

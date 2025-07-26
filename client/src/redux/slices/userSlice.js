@@ -122,7 +122,7 @@ export const logoutUser = createAsyncThunk(
   }
 );
 
-// Async thunk for updating premium status after payment verification
+// Async thunk for updating premium status after PayPal payment verification
 export const updatePremiumStatus = createAsyncThunk(
   'user/updatePremiumStatus',
   async (paymentData, { rejectWithValue, getState }) => {
@@ -133,19 +133,20 @@ export const updatePremiumStatus = createAsyncThunk(
         return rejectWithValue('No authentication token');
       }
       
+      // PayPal payment verification
       const response = await fetch('/api/premium/verify-payment', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify(paymentData),
+        body: JSON.stringify(paymentData), // Contains orderID from PayPal
       });
       
       const data = await response.json();
       
       if (!response.ok) {
-        return rejectWithValue(data.message || 'Payment verification failed');
+        return rejectWithValue(data.message || 'PayPal payment verification failed');
       }
       
       return data.user;
